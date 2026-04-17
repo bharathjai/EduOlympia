@@ -12,21 +12,28 @@ import {
   ArrowRight
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { supabase } from "@/utils/supabase";
 
 export default function StudentDashboard() {
   const [results, setResults] = useState<any>(null);
   const [classes, setClasses] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/results`)
-      .then(res => res.json())
-      .then(data => setResults(data.data))
-      .catch(err => console.error(err));
+    // Mock student results/progress for dashboard
+    setResults({
+      overview: {
+        streak: 12,
+        testsAttempted: 8,
+        globalRank: 142,
+        averageScore: 85
+      }
+    });
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/classes`)
-      .then(res => res.json())
-      .then(data => setClasses(data.data))
-      .catch(err => console.error(err));
+    const fetchClasses = async () => {
+      const { data } = await supabase.from('live_classes').select('*').order('id', { ascending: false }).limit(3);
+      if (data) setClasses(data);
+    };
+    fetchClasses();
   }, []);
 
   return (

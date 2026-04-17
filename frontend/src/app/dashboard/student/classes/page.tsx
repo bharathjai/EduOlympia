@@ -4,22 +4,21 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useState, useEffect } from "react";
 import { Video, Calendar, Clock, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { supabase } from "@/utils/supabase";
 
 export default function LiveClassesPage() {
   const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/classes`)
-      .then(res => res.json())
-      .then(data => {
-        setClasses(data.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    const fetchClasses = async () => {
+      const { data, error } = await supabase.from('live_classes').select('*').order('id', { ascending: false });
+      if (!error && data) {
+        setClasses(data);
+      }
+      setLoading(false);
+    };
+    fetchClasses();
   }, []);
 
   return (

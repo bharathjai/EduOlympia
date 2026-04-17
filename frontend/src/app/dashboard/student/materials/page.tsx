@@ -3,22 +3,29 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { useState, useEffect } from "react";
 import { FileText, Video, Download } from "lucide-react";
+import { supabase } from "@/utils/supabase";
 
 export default function StudyMaterialsPage() {
   const [materials, setMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/materials`)
-      .then(res => res.json())
-      .then(data => {
-        setMaterials(data.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    const fetchMaterials = async () => {
+      const { data, error } = await supabase.from('trainer_materials').select('*').order('id', { ascending: false });
+      if (!error && data) {
+        setMaterials(data.map(m => ({
+          id: m.id,
+          title: m.title,
+          subject: m.subject,
+          class: m.class_grade,
+          type: m.type,
+          size: m.size,
+          uploadedAt: m.uploaded_at
+        })));
+      }
+      setLoading(false);
+    };
+    fetchMaterials();
   }, []);
 
   return (
