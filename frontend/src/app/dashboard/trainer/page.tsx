@@ -13,10 +13,12 @@ import {
   Video,
   Calculator,
   PieChart,
-  X
+  X,
+  Bot
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/utils/supabase";
+import Link from "next/link";
 
 export default function TrainerDashboard() {
   const [analytics, setAnalytics] = useState<any>(null);
@@ -217,7 +219,7 @@ export default function TrainerDashboard() {
           <section>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold text-gray-900">Upcoming Live Classes</h2>
-              <button className="text-sm text-brand font-medium hover:underline">View Calendar</button>
+              <Link href="/dashboard/trainer/classes" className="text-sm text-brand font-medium hover:underline">View Calendar</Link>
             </div>
             
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -241,10 +243,10 @@ export default function TrainerDashboard() {
                     </div>
                     
                     <div className="relative z-10">
-                      <button className="bg-brand hover:bg-brand-hover text-white text-sm font-semibold py-2 px-6 rounded-lg transition-colors flex items-center gap-2 w-fit">
+                      <Link href={cls.status === 'upcoming' ? `/dashboard/trainer/live-class/${cls.id}` : '/dashboard/trainer/classes'} className="bg-brand hover:bg-brand-hover text-white text-sm font-semibold py-2 px-6 rounded-lg transition-colors flex items-center gap-2 w-fit">
                         <Video className="w-4 h-4" />
                         {cls.status === 'upcoming' ? 'Start Class' : 'View Details'}
-                      </button>
+                      </Link>
                     </div>
 
                     {/* Decorative Graphic */}
@@ -262,7 +264,7 @@ export default function TrainerDashboard() {
           <section>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold text-gray-900">Recent Activity</h2>
-              <button className="text-sm text-brand font-medium hover:underline">View All</button>
+              <Link href="/dashboard/trainer/analytics" className="text-sm text-brand font-medium hover:underline">View All</Link>
             </div>
             <div className="bg-white border border-gray-200 rounded-2xl p-2">
               {!analytics ? (
@@ -342,12 +344,12 @@ export default function TrainerDashboard() {
           <section className="bg-gradient-to-br from-brand to-purple-700 rounded-2xl p-6 text-white shadow-lg shadow-brand/20">
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-white/20 p-2 rounded-xl">
-                <HelpCircle className="w-6 h-6 text-white" />
+                <Bot className="w-6 h-6 text-white" />
               </div>
               <h2 className="text-lg font-bold">Try AI Doubt Assistant</h2>
             </div>
             <p className="text-sm text-white/80 mb-6">Get instant answers and explanations for student doubts.</p>
-            <button className="w-full bg-white text-brand font-semibold py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
+            <button onClick={() => setActiveModal('ai_assistant')} className="w-full bg-white text-brand font-semibold py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
               Open Assistant
             </button>
           </section>
@@ -364,6 +366,7 @@ export default function TrainerDashboard() {
                 {activeModal === 'generate' && 'AI Question Generator'}
                 {activeModal === 'practice' && 'Create Practice Paper'}
                 {activeModal === 'class' && 'Schedule Live Class'}
+                {activeModal === 'ai_assistant' && 'AI Doubt Assistant'}
               </h3>
               <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-100">
                 <X className="w-5 h-5" />
@@ -371,75 +374,89 @@ export default function TrainerDashboard() {
             </div>
             
             <form onSubmit={handleActionSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  {activeModal === 'generate' ? 'Topic / Subject' : 'Title'}
-                </label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder={activeModal === 'generate' ? 'e.g., Linear Equations' : 'Enter title...'}
-                  className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                />
-              </div>
-
-              {(activeModal === 'upload' || activeModal === 'class') && (
+              {activeModal === 'ai_assistant' ? (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Subject / Category</label>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="e.g., Mathematics"
-                    className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
-                    value={formData.subject}
-                    onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                  />
+                   <p className="text-sm text-gray-500 mb-4">Paste a student's doubt below, and our AI will generate a detailed explanation.</p>
+                   <textarea 
+                     rows={4}
+                     placeholder="Type the doubt here..."
+                     className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all resize-none"
+                     required
+                   />
                 </div>
-              )}
-
-              {activeModal === 'upload' && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Upload File</label>
-                  <input 
-                    type="file" 
-                    required
-                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 transition-all border border-dashed border-gray-300 rounded-xl p-2 cursor-pointer"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setFile(e.target.files[0]);
-                      }
-                    }}
-                  />
-                </div>
-              )}
-
-              {activeModal === 'class' && (
-                <div className="grid grid-cols-2 gap-4">
+              ) : (
+                <>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Date</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      {activeModal === 'generate' ? 'Topic / Subject' : 'Title'}
+                    </label>
                     <input 
                       type="text" 
                       required
-                      placeholder="e.g., Tomorrow"
+                      placeholder={activeModal === 'generate' ? 'e.g., Linear Equations' : 'Enter title...'}
                       className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
-                      value={formData.date}
-                      onChange={(e) => setFormData({...formData, date: e.target.value})}
+                      value={formData.title}
+                      onChange={(e) => setFormData({...formData, title: e.target.value})}
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Time</label>
-                    <input 
-                      type="text" 
-                      required
-                      placeholder="10:00 AM"
-                      className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
-                      value={formData.time}
-                      onChange={(e) => setFormData({...formData, time: e.target.value})}
-                    />
-                  </div>
-                </div>
+
+                  {(activeModal === 'upload' || activeModal === 'class') && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Subject / Category</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="e.g., Mathematics"
+                        className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                        value={formData.subject}
+                        onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                      />
+                    </div>
+                  )}
+
+                  {activeModal === 'upload' && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Upload File</label>
+                      <input 
+                        type="file" 
+                        required
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 transition-all border border-dashed border-gray-300 rounded-xl p-2 cursor-pointer"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setFile(e.target.files[0]);
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {activeModal === 'class' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Date</label>
+                        <input 
+                          type="text" 
+                          required
+                          placeholder="e.g., Tomorrow"
+                          className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                          value={formData.date}
+                          onChange={(e) => setFormData({...formData, date: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Time</label>
+                        <input 
+                          type="text" 
+                          required
+                          placeholder="10:00 AM"
+                          className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                          value={formData.time}
+                          onChange={(e) => setFormData({...formData, time: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="pt-4">
@@ -456,7 +473,8 @@ export default function TrainerDashboard() {
                       {activeModal === 'generate' && <Sparkles className="w-5 h-5" />}
                       {activeModal === 'practice' && <FileText className="w-5 h-5" />}
                       {activeModal === 'class' && <Calendar className="w-5 h-5" />}
-                      Confirm & Submit
+                      {activeModal === 'ai_assistant' && <Bot className="w-5 h-5" />}
+                      {activeModal === 'ai_assistant' ? 'Generate Answer' : 'Confirm & Submit'}
                     </>
                   )}
                 </button>

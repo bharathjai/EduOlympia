@@ -99,6 +99,16 @@ export default function TrainerClassesPage() {
     setIsSubmitting(false);
   };
 
+  const handleCancelClass = async (id: number) => {
+    if (!confirm("Are you sure you want to cancel this class?")) return;
+    try {
+      await supabase.from('live_classes').delete().eq('id', id);
+      await fetchClasses();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <DashboardLayout role="trainer" userName="Rahul Singh" userDescription="Trainer - Mathematics">
       <div className="flex justify-between items-center mb-6">
@@ -128,7 +138,16 @@ export default function TrainerClassesPage() {
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${cls.status === 'upcoming' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
                   {cls.date}
                 </span>
-                <span className="text-xs font-semibold text-gray-500">{cls.time}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-semibold text-gray-500">{cls.time}</span>
+                  <button 
+                    onClick={() => handleCancelClass(cls.id)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                    title="Cancel Class"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <h3 className="font-bold text-gray-900 text-lg mb-1">{cls.title}</h3>
               <p className="text-xs text-gray-500 mb-6">{cls.class} • {cls.subject}</p>
