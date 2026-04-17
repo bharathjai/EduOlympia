@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Clock, ArrowRight, ArrowLeft, CheckCircle2, Circle, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { supabase } from "@/utils/supabase";
 
 export default function TakeTestPage() {
   const params = useParams();
@@ -17,19 +18,31 @@ export default function TakeTestPage() {
   const [score, setScore] = useState(0);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/exams/${params.id}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'success' && data.data.questions) {
-          setExam(data.data);
-          setTimeLeft(data.data.durationMinutes * 60);
-        }
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    const fetchExamAndQuestions = async () => {
+      // 1. Fetch exam details
+      const { data: examData } = await supabase.from('trainer_exams').select('*').eq('id', params.id).single();
+      
+      // 2. Fetch some mock questions since we don't have a join table yet
+      const { data: questionsData } = await supabase.from('trainer_questions').select('*').limit(10);
+
+      if (examData && questionsData) {
+        const formattedExam = {
+          id: examData.id,
+          title: examData.title,
+          durationMinutes: examData.duration || 60,
+          questions: questionsData.map(q => ({
+            id: q.id,
+            text: q.question_text,
+            options: ['Option 1', 'Option 2', 'Option 3', 'Option 4'], // Mock options
+            correctAnswer: 'Option 1'
+          }))
+        };
+        setExam(formattedExam);
+        setTimeLeft(formattedExam.durationMinutes * 60);
+      }
+      setLoading(false);
+    };
+    fetchExamAndQuestions();
   }, [params.id]);
 
   useEffect(() => {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Users, UserCircle, Send, Hand, MonitorUp } from "lucide-react";
+import { supabase } from "@/utils/supabase";
 
 export default function StudentLiveClassPage() {
   const params = useParams();
@@ -23,17 +24,16 @@ export default function StudentLiveClassPage() {
   ]);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/classes`)
-      .then(res => res.json())
-      .then(data => {
-        const found = data.data.find((c: any) => c.id === parseInt(params.id as string));
-        setCls(found || { title: "Live Session", subject: "General", class: "All" });
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    const fetchClassDetails = async () => {
+      const { data, error } = await supabase.from('live_classes').select('*').eq('id', params.id).single();
+      if (data && !error) {
+        setCls({ title: data.title, subject: data.subject, class: data.class_grade });
+      } else {
+        setCls({ title: "Live Session", subject: "General", class: "All" });
+      }
+      setLoading(false);
+    };
+    fetchClassDetails();
   }, [params.id]);
 
   const handleSendMessage = (e: React.FormEvent) => {
