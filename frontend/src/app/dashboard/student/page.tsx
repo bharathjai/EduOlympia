@@ -27,7 +27,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* Top Stats */}
-      <div className="grid grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6 mb-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4">
           <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center">
             <Flame className="w-6 h-6" />
@@ -69,8 +69,8 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-8">
-        <div className="col-span-2 space-y-8">
+      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
           {/* Continue Learning */}
           <section>
             <div className="flex justify-between items-center mb-4">
@@ -78,7 +78,7 @@ export default function StudentDashboard() {
               <button className="text-sm text-brand font-medium hover:underline">View All</button>
             </div>
             
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-lg transition-all group cursor-pointer">
                 <div className="bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-1 rounded w-fit mb-4">Mathematics</div>
                 <div className="h-20 flex items-center justify-center mb-4">
@@ -136,7 +136,7 @@ export default function StudentDashboard() {
               <button className="text-sm text-brand font-medium hover:underline">View All</button>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <div className="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-lg transition-all group cursor-pointer flex gap-5">
                 <div className="w-24 h-24 bg-yellow-50 rounded-xl flex items-center justify-center shrink-0">
                   <ClipboardList className="w-10 h-10 text-yellow-600" />

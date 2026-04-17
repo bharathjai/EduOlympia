@@ -30,7 +30,7 @@ export default function TrainerDashboard() {
       </div>
 
       {/* Top Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="bg-[#FAF5FF] rounded-2xl p-5 border border-purple-100 flex items-center gap-4">
           <div className="w-11 h-11 bg-[#E9D8FD] text-purple-600 rounded-xl flex items-center justify-center shrink-0">
             <BookOpen className="w-5 h-5" strokeWidth={2.5} />
@@ -72,12 +72,12 @@ export default function TrainerDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-8">
-        <div className="col-span-2 space-y-8">
+      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
           {/* Quick Actions */}
           <section>
             <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <button className="flex flex-col items-start text-left p-6 rounded-2xl transition-all group bg-[#F3F0FF] hover:bg-[#EBE5FF]">
                 <div className="text-brand mb-5">
                   <UploadCloud className="w-8 h-8" strokeWidth={2} />
@@ -127,7 +127,7 @@ export default function TrainerDashboard() {
               <button className="text-sm text-brand font-medium hover:underline">View Calendar</button>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               {/* Card 1 */}
               <div className="bg-[#F3F0FF] rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between min-h-[180px]">
                 <div>

@@ -18,7 +18,9 @@ import {
   HelpCircle,
   Bell,
   Search,
-  ChevronDown
+  ChevronDown,
+  Menu,
+  X
 } from "lucide-react";
 
 interface SidebarItem {
@@ -37,6 +39,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children, role, userName, userDescription }: DashboardLayoutProps) {
   const pathname = usePathname();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const trainerMenu: SidebarItem[] = [
     { name: "Dashboard", href: "/dashboard/trainer", icon: LayoutDashboard },
@@ -62,14 +65,30 @@ export default function DashboardLayout({ children, role, userName, userDescript
   const menu = role === "trainer" ? trainerMenu : studentMenu; // Defaulting to these two for MVP demo
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC]">
+    <div className="flex h-screen bg-[#F8FAFC] relative overflow-hidden">
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-gray-900/50 z-40 md:hidden backdrop-blur-sm"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-white" />
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold text-brand">EduOlympia</span>
           </div>
-          <span className="text-xl font-bold text-brand">EduOlympia</span>
+          <button 
+            className="md:hidden text-gray-500 hover:text-gray-700"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
@@ -122,16 +141,24 @@ export default function DashboardLayout({ children, role, userName, userDescript
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
         {/* Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8">
-          <div className="relative w-96">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Search students, content, tests..." 
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-            />
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 md:px-8">
+          <div className="flex items-center gap-3">
+            <button 
+              className="md:hidden p-2 -ml-2 text-gray-600 hover:text-brand transition-colors rounded-lg hover:bg-gray-50"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="relative w-48 sm:w-64 md:w-96 hidden sm:block">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="Search..." 
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-6">
@@ -141,13 +168,13 @@ export default function DashboardLayout({ children, role, userName, userDescript
             </button>
             
             <div 
-              className="relative flex items-center gap-3 pl-6 border-l border-gray-200 cursor-pointer"
+              className="relative flex items-center gap-2 sm:gap-3 pl-4 sm:pl-6 border-l border-gray-200 cursor-pointer"
               onClick={() => setIsProfileOpen(!isProfileOpen)}
             >
-              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-brand to-purple-400 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-brand to-purple-400 flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
                 {userName.charAt(0)}
               </div>
-              <div>
+              <div className="hidden lg:block">
                 <p className="text-sm font-semibold text-gray-900">{userName}</p>
                 <p className="text-xs text-gray-500">{userDescription}</p>
               </div>
@@ -179,7 +206,7 @@ export default function DashboardLayout({ children, role, userName, userDescript
         </header>
 
         {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
           {children}
         </main>
       </div>
