@@ -11,8 +11,24 @@ import {
   Video,
   ArrowRight
 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function StudentDashboard() {
+  const [results, setResults] = useState<any>(null);
+  const [classes, setClasses] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/results`)
+      .then(res => res.json())
+      .then(data => setResults(data.data))
+      .catch(err => console.error(err));
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/classes`)
+      .then(res => res.json())
+      .then(data => setClasses(data.data))
+      .catch(err => console.error(err));
+  }, []);
+
   return (
     <DashboardLayout 
       role="student" 
@@ -34,7 +50,7 @@ export default function StudentDashboard() {
           </div>
           <div>
             <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">Study Streak</p>
-            <p className="text-2xl font-bold text-gray-900">12 Days</p>
+            <p className="text-2xl font-bold text-gray-900">{results?.overview?.streak || "..."} Days</p>
           </div>
         </div>
         
@@ -44,7 +60,7 @@ export default function StudentDashboard() {
           </div>
           <div>
             <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">Tests Attempted</p>
-            <p className="text-2xl font-bold text-gray-900">24</p>
+            <p className="text-2xl font-bold text-gray-900">{results?.overview?.testsAttempted || "..."}</p>
           </div>
         </div>
 
@@ -54,7 +70,7 @@ export default function StudentDashboard() {
           </div>
           <div>
             <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">Current Rank</p>
-            <p className="text-2xl font-bold text-gray-900">#156</p>
+            <p className="text-2xl font-bold text-gray-900">#{results?.overview?.globalRank || "..."}</p>
           </div>
         </div>
 
@@ -64,7 +80,7 @@ export default function StudentDashboard() {
           </div>
           <div>
             <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">Average Score</p>
-            <p className="text-2xl font-bold text-gray-900">78.6%</p>
+            <p className="text-2xl font-bold text-gray-900">{results?.overview?.averageScore || "..."}%</p>
           </div>
         </div>
       </div>
@@ -177,35 +193,27 @@ export default function StudentDashboard() {
             </div>
             
             <div className="space-y-4">
-              <div className="flex gap-4">
-                <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center shrink-0">
-                  <PlayCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">Live Class: Algebra Basics</p>
-                  <p className="text-xs text-gray-500 mt-1">Today, 4:00 PM - 5:00 PM</p>
-                </div>
-              </div>
-              
-              <div className="flex gap-4">
-                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
-                  <CheckSquare className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">Practice Test - Mathematics</p>
-                  <p className="text-xs text-gray-500 mt-1">Tomorrow, 10:00 AM</p>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
-                  <Award className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">School Level Olympiad</p>
-                  <p className="text-xs text-gray-500 mt-1">10 December 2024</p>
-                </div>
-              </div>
+              {classes.length === 0 ? (
+                <div className="text-center py-4 text-gray-500 text-sm">Loading schedule...</div>
+              ) : (
+                classes.map((cls, idx) => {
+                  const Icon = idx === 0 ? PlayCircle : (idx === 1 ? CheckSquare : Award);
+                  const color = idx === 0 ? "text-purple-600" : (idx === 1 ? "text-emerald-600" : "text-blue-600");
+                  const bg = idx === 0 ? "bg-purple-50" : (idx === 1 ? "bg-emerald-50" : "bg-blue-50");
+                  
+                  return (
+                    <div key={cls.id} className="flex gap-4">
+                      <div className={`w-12 h-12 ${bg} ${color} rounded-xl flex items-center justify-center shrink-0`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">{cls.status === 'upcoming' ? 'Live Class: ' : ''}{cls.title}</p>
+                        <p className="text-xs text-gray-500 mt-1">{cls.date}, {cls.time}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </section>
 
