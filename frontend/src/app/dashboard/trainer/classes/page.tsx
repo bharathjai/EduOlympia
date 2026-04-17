@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useState, useEffect } from "react";
 import { Video, Calendar, Plus, Users, X, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { supabase } from "@/utils/supabase";
 
 export default function TrainerClassesPage() {
   const [classes, setClasses] = useState<any[]>([]);
@@ -14,17 +15,25 @@ export default function TrainerClassesPage() {
   const [formData, setFormData] = useState({ title: '', subject: '', class: '', date: '', time: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchClasses = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/classes`)
-      .then(res => res.json())
-      .then(data => {
-        setClasses(data.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+  const fetchClasses = async () => {
+    const { data, error } = await supabase.from('live_classes').select('*').order('id', { ascending: false });
+    if (error) {
+      console.error(error);
+    } else {
+      // Map DB snake_case to UI expected camelCase
+      const formattedClasses = data?.map(cls => ({
+        id: cls.id,
+        title: cls.title,
+        subject: cls.subject,
+        class: cls.class_grade, // Map class_grade to class
+        date: cls.date,
+        time: cls.time,
+        status: cls.status,
+        studentsRegistered: cls.students_registered
+      })) || [];
+      setClasses(formattedClasses);
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -52,18 +61,24 @@ export default function TrainerClassesPage() {
     e.preventDefault();
     setIsSubmitting(true);
     
+    const dbPayload = {
+      title: formData.title,
+      subject: formData.subject,
+      class_grade: formData.class,
+      date: formData.date,
+      time: formData.time,
+      status: 'upcoming',
+      students_registered: editingId ? undefined : 0 // Don't overwrite if editing
+    };
+
     try {
-      const url = editingId 
-        ? `${process.env.NEXT_PUBLIC_API_URL}/api/classes/${editingId}` 
-        : `${process.env.NEXT_PUBLIC_API_URL}/api/classes`;
-        
-      await fetch(url, {
-        method: editingId ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
+      if (editingId) {
+        await supabase.from('live_classes').update(dbPayload).eq('id', editingId);
+      } else {
+        await supabase.from('live_classes').insert([dbPayload]);
+      }
       
-      fetchClasses();
+      await fetchClasses();
       setIsModalOpen(false);
     } catch (err) {
       console.error(err);
@@ -75,8 +90,8 @@ export default function TrainerClassesPage() {
     if (!editingId || !confirm("Are you sure you want to delete this class?")) return;
     setIsSubmitting(true);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${editingId}`, { method: 'DELETE' });
-      fetchClasses();
+      await supabase.from('live_classes').delete().eq('id', editingId);
+      await fetchClasses();
       setIsModalOpen(false);
     } catch (err) {
       console.error(err);
