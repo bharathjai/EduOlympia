@@ -3,6 +3,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { useState, useEffect } from "react";
 import { FileText, Trash2, Plus, Users, Calendar, X, Sparkles } from "lucide-react";
+import { supabase } from "@/utils/supabase";
 
 export default function TrainerPracticePage() {
   const [papers, setPapers] = useState<any[]>([]);
@@ -11,17 +12,19 @@ export default function TrainerPracticePage() {
   const [formData, setFormData] = useState({ title: '', subject: '', class: '', totalQuestions: 20 });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchPapers = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/practice`)
-      .then(res => res.json())
-      .then(data => {
-        setPapers(data.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+  const fetchPapers = async () => {
+    const { data, error } = await supabase.from('practice_papers').select('*').order('id', { ascending: false });
+    if (!error && data) {
+      setPapers(data.map(p => ({
+        id: p.id,
+        title: p.title,
+        subject: p.subject,
+        class: p.class_grade,
+        totalQuestions: p.total_questions,
+        createdAt: new Date().toISOString()
+      })));
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -31,8 +34,8 @@ export default function TrainerPracticePage() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this practice paper?')) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/practice/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchPapers();
+      await supabase.from('practice_papers').delete().eq('id', id);
+      fetchPapers();
     } catch (err) {
       console.error(err);
     }
@@ -42,11 +45,13 @@ export default function TrainerPracticePage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/practice`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
+      await supabase.from('practice_papers').insert([{
+        title: formData.title,
+        subject: formData.subject,
+        class_grade: formData.class,
+        total_questions: formData.totalQuestions,
+        difficulty: 'Medium'
+      }]);
       
       fetchPapers();
       setIsModalOpen(false);

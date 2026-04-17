@@ -3,6 +3,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { useState, useEffect } from "react";
 import { Search, UserCircle, MoreVertical, TrendingUp, TrendingDown, Phone } from "lucide-react";
+import { supabase } from "@/utils/supabase";
 
 export default function TrainerStudentsPage() {
   const [students, setStudents] = useState<any[]>([]);
@@ -10,16 +11,22 @@ export default function TrainerStudentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/students`)
-      .then(res => res.json())
-      .then(data => {
-        setStudents(data.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    const fetchStudents = async () => {
+      const { data, error } = await supabase.from('trainer_students').select('*').order('id', { ascending: true });
+      if (!error && data) {
+        setStudents(data.map(s => ({
+          id: s.id,
+          name: s.name,
+          class: s.class_grade,
+          section: s.section,
+          lastActive: s.last_active,
+          score: s.score,
+          phone: s.phone
+        })));
+      }
+      setLoading(false);
+    };
+    fetchStudents();
   }, []);
 
   const filteredStudents = students.filter(s => 

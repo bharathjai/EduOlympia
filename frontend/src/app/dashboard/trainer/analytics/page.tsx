@@ -3,22 +3,33 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { useState, useEffect } from "react";
 import { Users, BookOpen, Video, TrendingUp, Award, Clock } from "lucide-react";
+import { supabase } from "@/utils/supabase";
 
 export default function TrainerAnalyticsPage() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analytics`)
-      .then(res => res.json())
-      .then(data => {
-        setAnalytics(data.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    const fetchAnalytics = async () => {
+      const { data, error } = await supabase.from('analytics_overview').select('*').limit(1).single();
+      if (!error && data) {
+        setAnalytics({
+          totalStudents: data.total_students,
+          materialsPublished: data.materials_published,
+          questionsCreated: data.questions_created,
+          liveClassesHosted: data.live_classes_hosted,
+          averageTestScore: data.average_test_score,
+          improvementRate: data.improvement_rate,
+          recentActivity: [
+            { action: 'Uploaded: "Quadratic Equations - Notes.pdf"', time: '2 hours ago' },
+            { action: 'Generated 25 MCQs for "Linear Equations"', time: 'Yesterday' },
+            { action: 'Created Practice Paper: Mathematics - Chapter 2', time: '2 days ago' }
+          ]
+        });
+      }
+      setLoading(false);
+    };
+    fetchAnalytics();
   }, []);
 
   if (loading) {

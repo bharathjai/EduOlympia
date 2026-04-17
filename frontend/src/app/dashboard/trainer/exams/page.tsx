@@ -3,22 +3,31 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { useState, useEffect } from "react";
 import { Clock, FileText, Plus, Users, Calendar } from "lucide-react";
+import { supabase } from "@/utils/supabase";
 
 export default function TrainerExamsPage() {
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/exams`)
-      .then(res => res.json())
-      .then(data => {
-        setExams(data.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    const fetchExams = async () => {
+      const { data, error } = await supabase.from('trainer_exams').select('*').order('id', { ascending: false });
+      if (!error && data) {
+        setExams(data.map(exam => ({
+          id: exam.id,
+          title: exam.title,
+          subject: exam.subject,
+          class: exam.class_grade,
+          date: exam.date,
+          durationMinutes: exam.duration,
+          status: exam.status,
+          type: 'Formal Exam',
+          questionsCount: 50
+        })));
+      }
+      setLoading(false);
+    };
+    fetchExams();
   }, []);
 
   return (

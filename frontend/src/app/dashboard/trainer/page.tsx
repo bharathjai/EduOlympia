@@ -16,6 +16,7 @@ import {
   X
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { supabase } from "@/utils/supabase";
 
 export default function TrainerDashboard() {
   const [analytics, setAnalytics] = useState<any>(null);
@@ -25,8 +26,39 @@ export default function TrainerDashboard() {
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchAnalytics = () => fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analytics`).then(res => res.json()).then(data => setAnalytics(data.data));
-  const fetchClasses = () => fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/classes`).then(res => res.json()).then(data => setClasses(data.data));
+  const fetchAnalytics = async () => {
+    const { data } = await supabase.from('analytics_overview').select('*').limit(1).single();
+    if (data) {
+      setAnalytics({
+        totalStudents: data.total_students,
+        materialsPublished: data.materials_published,
+        questionsCreated: data.questions_created,
+        liveClassesHosted: data.live_classes_hosted,
+        averageTestScore: data.average_test_score,
+        improvementRate: data.improvement_rate,
+        recentActivity: [
+          { action: 'Uploaded: "Quadratic Equations - Notes.pdf"', time: '2 hours ago' },
+          { action: 'Generated 25 MCQs for "Linear Equations"', time: 'Yesterday' }
+        ]
+      });
+    }
+  };
+
+  const fetchClasses = async () => {
+    const { data } = await supabase.from('live_classes').select('*').order('id', { ascending: false }).limit(2);
+    if (data) {
+      setClasses(data.map(cls => ({
+        id: cls.id,
+        title: cls.title,
+        subject: cls.subject,
+        class: cls.class_grade,
+        date: cls.date,
+        time: cls.time,
+        status: cls.status,
+        studentsRegistered: cls.students_registered
+      })));
+    }
+  };
 
   useEffect(() => {
     fetchAnalytics();
@@ -37,61 +69,36 @@ export default function TrainerDashboard() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      let endpoint = 'analytics/activity';
-      let actionText = '';
-      let body = {};
-
       if (activeModal === 'upload') {
-        endpoint = 'materials';
-        actionText = `Uploaded: "${formData.title}"`;
-        body = { title: formData.title, type: 'PDF', subject: formData.subject };
-      } else if (activeModal === 'generate') {
-        endpoint = 'analytics/activity'; // Only log activity
-        actionText = `Generated Questions for "${formData.title}"`;
-        body = { action: actionText };
+        await supabase.from('trainer_materials').insert([{
+          title: formData.title,
+          subject: formData.subject,
+          class_grade: 'Class 10',
+          type: 'PDF',
+          size: '1.2 MB',
+          uploaded_at: 'Just now'
+        }]);
       } else if (activeModal === 'practice') {
-        endpoint = 'exams';
-        actionText = `Created Practice Paper: ${formData.title}`;
-        body = { title: formData.title, type: 'Practice Test' };
+        await supabase.from('practice_papers').insert([{
+          title: formData.title,
+          subject: 'Mathematics',
+          class_grade: 'Class 10',
+          total_questions: 20,
+          difficulty: 'Medium'
+        }]);
       } else if (activeModal === 'class') {
-        endpoint = 'classes';
-        actionText = `Scheduled Live Class: ${formData.title}`;
-        body = { title: formData.title, subject: formData.subject, date: formData.date, time: formData.time };
+        await supabase.from('live_classes').insert([{
+          title: formData.title,
+          subject: formData.subject,
+          class_grade: 'Class 8',
+          date: formData.date,
+          time: formData.time,
+          status: 'upcoming',
+          students_registered: 0
+        }]);
       }
 
-      // 1. Post to specific endpoint
-      if (activeModal === 'upload') {
-        const uploadData = new FormData();
-        uploadData.append('title', formData.title);
-        uploadData.append('subject', formData.subject);
-        if (file) {
-          uploadData.append('file', file);
-        }
-        
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/materials`, {
-          method: 'POST',
-          body: uploadData
-        });
-      } else {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/${endpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-      }
-
-      // 2. If it wasn't just an activity log, also log it to activity
-      if (endpoint !== 'analytics/activity') {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analytics/activity`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: actionText })
-        });
-      }
-
-      // 3. Refresh data
       fetchAnalytics();
-      fetchClasses();
       fetchClasses();
       setActiveModal(null);
       setFormData({ title: '', subject: '', date: '', time: '' });

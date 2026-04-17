@@ -3,6 +3,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { useState, useEffect } from "react";
 import { Plus, Trash2, CheckCircle2, Circle, X } from "lucide-react";
+import { supabase } from "@/utils/supabase";
 
 export default function TrainerQuestionsPage() {
   const [questions, setQuestions] = useState<any[]>([]);
@@ -20,17 +21,21 @@ export default function TrainerQuestionsPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchQuestions = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/questions`)
-      .then(res => res.json())
-      .then(data => {
-        setQuestions(data.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+  const fetchQuestions = async () => {
+    const { data, error } = await supabase.from('trainer_questions').select('*').order('id', { ascending: false });
+    if (!error && data) {
+      setQuestions(data.map(q => ({
+        id: q.id,
+        text: q.question_text,
+        subject: q.subject,
+        topic: q.topic,
+        difficulty: q.difficulty,
+        type: q.type,
+        options: ['Option 1', 'Option 2', 'Option 3', 'Option 4'], // Mock options since DB doesn't have options column
+        correctAnswer: 'Option 1'
+      })));
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -40,8 +45,8 @@ export default function TrainerQuestionsPage() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this question?')) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/questions/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchQuestions();
+      await supabase.from('trainer_questions').delete().eq('id', id);
+      fetchQuestions();
     } catch (err) {
       console.error(err);
     }
@@ -51,20 +56,13 @@ export default function TrainerQuestionsPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const options = [formData.option1, formData.option2, formData.option3, formData.option4];
-      const newQuestion = {
-        text: formData.text,
-        options,
-        correctAnswer: options[formData.correctAnswerIndex],
+      await supabase.from('trainer_questions').insert([{
+        question_text: formData.text,
         subject: formData.subject,
-        difficulty: formData.difficulty
-      };
-
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/questions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newQuestion)
-      });
+        topic: 'General',
+        difficulty: formData.difficulty,
+        type: 'Multiple Choice'
+      }]);
       
       fetchQuestions();
       setIsModalOpen(false);

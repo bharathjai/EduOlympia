@@ -3,22 +3,26 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { useState, useEffect } from "react";
 import { FileText, Video, Download, UploadCloud, Trash2 } from "lucide-react";
+import { supabase } from "@/utils/supabase";
 
 export default function TrainerMaterialsPage() {
   const [materials, setMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchMaterials = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/materials`)
-      .then(res => res.json())
-      .then(data => {
-        setMaterials(data.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+  const fetchMaterials = async () => {
+    const { data, error } = await supabase.from('trainer_materials').select('*').order('id', { ascending: false });
+    if (!error && data) {
+      setMaterials(data.map(m => ({
+        id: m.id,
+        title: m.title,
+        subject: m.subject,
+        class: m.class_grade,
+        type: m.type,
+        size: m.size,
+        uploadedAt: m.uploaded_at
+      })));
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -29,12 +33,8 @@ export default function TrainerMaterialsPage() {
     if (!confirm('Are you sure you want to delete this material?')) return;
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/materials/${id}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        fetchMaterials();
-      }
+      await supabase.from('trainer_materials').delete().eq('id', id);
+      fetchMaterials();
     } catch (err) {
       console.error("Error deleting material:", err);
     }
