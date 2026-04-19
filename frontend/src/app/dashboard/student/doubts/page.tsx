@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/DashboardLayout";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Send, User, Sparkles, Loader2 } from "lucide-react";
 
@@ -11,6 +11,16 @@ type Message = {
 };
 
 export default function DoubtsPage() {
+  return (
+    <DashboardLayout role="student" userName="Aarav Sharma" userDescription="Class 8 • Delhi Public School">
+      <Suspense fallback={<div className="flex h-[calc(100vh-120px)] items-center justify-center text-gray-500">Loading AI Assistant...</div>}>
+        <DoubtsChat />
+      </Suspense>
+    </DashboardLayout>
+  );
+}
+
+function DoubtsChat() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q');
   
@@ -48,8 +58,8 @@ export default function DoubtsPage() {
     setIsTyping(true);
 
     try {
-      // Send to our backend AI route
-      const response = await fetch('http://localhost:5000/api/ai/ask', {
+      // Send to our Next.js API route
+      const response = await fetch('/api/ai/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,10 +83,8 @@ export default function DoubtsPage() {
   };
 
   return (
-    <DashboardLayout role="student" userName="Aarav Sharma" userDescription="Class 8 • Delhi Public School">
-      <div className="max-w-4xl mx-auto h-[calc(100vh-140px)] flex flex-col bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-        
-        {/* Header */}
+    <div className="flex flex-col h-[calc(100vh-120px)] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
+      {/* Header */}
         <div className="bg-purple-50/50 p-6 border-b border-purple-100 flex items-center gap-4 shrink-0">
           <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center shrink-0">
             <span className="text-2xl">🤖</span>
@@ -148,8 +156,6 @@ export default function DoubtsPage() {
             AI can make mistakes. Verify important answers.
           </p>
         </div>
-
       </div>
-    </DashboardLayout>
   );
 }
