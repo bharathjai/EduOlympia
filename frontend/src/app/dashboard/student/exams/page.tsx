@@ -2,19 +2,25 @@
 
 import DashboardLayout from "@/components/DashboardLayout";
 import { useState, useEffect } from "react";
-import { Clock, Calendar, ArrowRight } from "lucide-react";
+import { Clock, Calendar, ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase";
 
 export default function ExamsPage() {
   const [exams, setExams] = useState<any[]>([]);
+  const [completedTitles, setCompletedTitles] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchExams = async () => {
-      const { data, error } = await supabase.from('trainer_exams').select('*').order('id', { ascending: false });
-      if (!error && data) {
-        setExams(data.map(exam => ({
+    const fetchExamsAndResults = async () => {
+      // Fetch exams
+      const { data: examsData, error: examsError } = await supabase.from('trainer_exams').select('*').order('id', { ascending: false });
+      
+      // Fetch completed results to see which exams are done
+      const { data: resultsData } = await supabase.from('student_test_results').select('paper_title').eq('student_name', 'Aarav Sharma');
+
+      if (!examsError && examsData) {
+        setExams(examsData.map(exam => ({
           id: exam.id,
           title: exam.title,
           subject: exam.subject,
@@ -23,12 +29,18 @@ export default function ExamsPage() {
           durationMinutes: exam.duration,
           status: exam.status,
           type: 'Formal Exam',
-          questionsCount: 50
+          questionsCount: 10
         })));
       }
+
+      if (resultsData) {
+        const titles = new Set(resultsData.map(r => r.paper_title));
+        setCompletedTitles(titles);
+      }
+      
       setLoading(false);
     };
-    fetchExams();
+    fetchExamsAndResults();
   }, []);
 
   return (
@@ -48,34 +60,44 @@ export default function ExamsPage() {
             <p className="text-sm text-gray-500">You're all caught up! Check your practice section.</p>
           </div>
         ) : (
-          exams.map((exam) => (
-            <div key={exam.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all group flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-start mb-4">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${exam.type === 'Formal Exam' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                    {exam.type}
-                  </span>
-                  <span className="text-xs font-semibold text-gray-500">{exam.questionsCount} Questions</span>
+          exams.map((exam) => {
+            const isCompleted = completedTitles.has(exam.title);
+            
+            return (
+              <div key={exam.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all group flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${exam.type === 'Formal Exam' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                      {exam.type}
+                    </span>
+                    <span className="text-xs font-semibold text-gray-500">{exam.questionsCount} Questions</span>
+                  </div>
+                  <h3 className="font-bold text-gray-900 text-lg mb-4 line-clamp-2">{exam.title}</h3>
+                  
+                  <div className="space-y-2 mb-6">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span>{exam.durationMinutes} Minutes</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                      <span>{exam.date ? new Date(exam.date).toLocaleDateString() : 'Flexible timing'}</span>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="font-bold text-gray-900 text-lg mb-4 line-clamp-2">{exam.title}</h3>
                 
-                <div className="space-y-2 mb-6">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock className="w-4 h-4 text-gray-400" />
-                    <span>{exam.durationMinutes} Minutes</span>
+                {isCompleted ? (
+                  <div className="w-full bg-green-50 text-green-700 text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 border border-green-200 cursor-not-allowed">
+                    <CheckCircle2 className="w-4 h-4" /> Completed
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span>{exam.date ? new Date(exam.date).toLocaleDateString() : (exam.dueDate ? `Due ${new Date(exam.dueDate).toLocaleDateString()}` : 'Flexible timing')}</span>
-                  </div>
-                </div>
+                ) : (
+                  <Link href={`/dashboard/student/take-test/${exam.id}`} className="w-full bg-red-600 text-white text-sm font-semibold py-2.5 rounded-xl group-hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
+                    Start Exam <ArrowRight className="w-4 h-4" />
+                  </Link>
+                )}
               </div>
-              
-              <Link href={`/dashboard/student/take-test/${exam.id}`} className="w-full bg-brand text-white text-sm font-semibold py-2.5 rounded-xl group-hover:bg-brand-hover transition-colors flex items-center justify-center gap-2">
-                Start Exam <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </DashboardLayout>

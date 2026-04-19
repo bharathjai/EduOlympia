@@ -34,9 +34,10 @@ interface DashboardLayoutProps {
   role: "super_admin" | "school_admin" | "trainer" | "student";
   userName: string;
   userDescription: string;
+  isTestActive?: boolean;
 }
 
-export default function DashboardLayout({ children, role, userName, userDescription }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, role, userName, userDescription, isTestActive = false }: DashboardLayoutProps) {
   const pathname = usePathname();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -63,6 +64,17 @@ export default function DashboardLayout({ children, role, userName, userDescript
   ];
 
   const menu = role === "trainer" ? trainerMenu : studentMenu; // Defaulting to these two for MVP demo
+
+  // Lockdown mode for active tests
+  if (isTestActive) {
+    return (
+      <div className="flex h-screen bg-[#F8FAFC] relative overflow-hidden">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 w-full flex flex-col">
+          {children}
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] relative overflow-hidden">

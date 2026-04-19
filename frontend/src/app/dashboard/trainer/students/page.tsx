@@ -13,17 +13,37 @@ export default function TrainerStudentsPage() {
 
   useEffect(() => {
     const fetchStudents = async () => {
-      const { data, error } = await supabase.from('trainer_students').select('*').order('id', { ascending: true });
-      if (!error && data) {
-        setStudents(data.map(s => ({
-          id: s.id,
-          name: s.name,
-          class: s.class_grade,
-          section: s.section,
-          lastActive: s.last_active,
-          score: s.score,
-          phone: s.phone
-        })));
+      // Fetch students and live test results concurrently
+      const [studentsRes, resultsRes] = await Promise.all([
+        supabase.from('trainer_students').select('*').order('id', { ascending: true }),
+        supabase.from('student_test_results').select('student_name, score, total_questions')
+      ]);
+
+      if (!studentsRes.error && studentsRes.data) {
+        setStudents(studentsRes.data.map(s => {
+          // Dynamically compute the score based on actual test submissions
+          let computedScore = "N/A";
+          if (resultsRes.data) {
+            const studentResults = resultsRes.data.filter(r => r.student_name === s.name);
+            if (studentResults.length > 0) {
+              const totalScore = studentResults.reduce((acc, curr) => acc + curr.score, 0);
+              const totalQuestions = studentResults.reduce((acc, curr) => acc + curr.total_questions, 0);
+              if (totalQuestions > 0) {
+                computedScore = Math.round((totalScore / totalQuestions) * 100) + "%";
+              }
+            }
+          }
+
+          return {
+            id: s.id,
+            name: s.name,
+            class: s.class_grade,
+            section: s.section,
+            lastActive: s.last_active,
+            score: computedScore,
+            phone: s.phone
+          };
+        }));
       }
       setLoading(false);
     };

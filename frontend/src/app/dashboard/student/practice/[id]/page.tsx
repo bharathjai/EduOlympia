@@ -1,13 +1,13 @@
 "use client";
 
 import DashboardLayout from "@/components/DashboardLayout";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase";
 import { FileText, Clock, AlertCircle, CheckCircle2, ArrowLeft, ArrowRight, Flag } from "lucide-react";
 import Link from "next/link";
 
-type TestState = 'intro' | 'active' | 'completed';
+type TestState = 'intro' | 'active' | 'submitting' | 'completed';
 
 export default function ActivePracticeTestPage() {
   const { id } = useParams();
@@ -23,6 +23,9 @@ export default function ActivePracticeTestPage() {
   const [score, setScore] = useState(0);
   
   const [timeLeft, setTimeLeft] = useState(0); // in seconds
+  const [warnings, setWarnings] = useState(0);
+  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     const fetchTestDetails = async () => {
@@ -89,7 +92,62 @@ export default function ActivePracticeTestPage() {
     return () => clearInterval(timer);
   }, [testState, timeLeft]);
 
-  const handleStartTest = () => {
+  // Anti-cheat / Exam Privacy listeners
+  useEffect(() => {
+    if (testState !== 'active') return;
+
+    const handleViolation = (reason: string) => {
+      setWarnings(prev => {
+        const next = prev + 1;
+        if (next >= 2) {
+          alert("Maximum warnings exceeded! Your test is being automatically submitted.");
+          setShouldAutoSubmit(true);
+        } else {
+          alert(`WARNING ${next}/2: ${reason}\n\nPlease stay in full-screen and do not switch tabs. Your test will auto-submit after 2 warnings.`);
+          // Attempt to force them back into fullscreen
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(e => console.log(e));
+          }
+        }
+        return next;
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleViolation("You switched tabs or minimized the window.");
+      }
+    };
+
+    const handleFullscreenChange = () => {
+      // If we are no longer in fullscreen and the test is still active
+      if (!document.fullscreenElement && testState === 'active' && !shouldAutoSubmit && !isSubmittingRef.current) {
+        handleViolation("You exited full-screen mode.");
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, [testState, shouldAutoSubmit]);
+
+  // Handle auto-submit trigger safely outside of closure
+  useEffect(() => {
+    if (shouldAutoSubmit) {
+      handleSubmitTest();
+    }
+  }, [shouldAutoSubmit]);
+
+  const handleStartTest = async () => {
+    try {
+      await document.documentElement.requestFullscreen();
+    } catch (e) {
+      console.log("Fullscreen request failed", e);
+    }
     setTestState('active');
   };
 
@@ -101,6 +159,13 @@ export default function ActivePracticeTestPage() {
   };
 
   const handleSubmitTest = async () => {
+    isSubmittingRef.current = true;
+    
+    // Exit fullscreen
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(e => console.log(e));
+    }
+    
     // Calculate mock score
     let calculatedScore = 0;
     questions.forEach((q, index) => {
@@ -108,7 +173,12 @@ export default function ActivePracticeTestPage() {
       if (answers[index]) calculatedScore++; // Just giving points for answering in demo
     });
     setScore(calculatedScore);
-    setTestState('completed');
+    // Play animation first
+    setTestState('submitting');
+    
+    setTimeout(() => {
+      setTestState('completed');
+    }, 800); // Wait for the advanced animation to finish
     
     // Save to Supabase
     if (paper) {
@@ -153,7 +223,12 @@ export default function ActivePracticeTestPage() {
   }
 
   return (
-    <DashboardLayout role="student" userName="Aarav Sharma" userDescription="Class 8 • Delhi Public School">
+    <DashboardLayout 
+      role="student" 
+      userName="Aarav Sharma" 
+      userDescription="Class 8 • Delhi Public School"
+      isTestActive={testState === 'active' || testState === 'submitting'}
+    >
       <div className="max-w-4xl mx-auto">
         
         {/* Intro State */}
@@ -198,14 +273,21 @@ export default function ActivePracticeTestPage() {
           </div>
         )}
 
-        {/* Active State */}
-        {testState === 'active' && questions.length > 0 && (
-          <div className="animate-in fade-in duration-300">
+        {/* Active & Submitting State */}
+        {(testState === 'active' || testState === 'submitting') && questions.length > 0 && (
+          <div className={`transition-all duration-700 transform ${testState === 'submitting' ? 'scale-90 opacity-0 -translate-y-20 blur-sm pointer-events-none' : 'animate-in fade-in slide-in-from-bottom-4'}`}>
             {/* Header / Progress */}
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row justify-between items-center gap-4 sticky top-6 z-10">
               <div>
                 <h2 className="font-bold text-gray-900 line-clamp-1">{paper.title}</h2>
-                <p className="text-sm text-gray-500">Question {currentIndex + 1} of {questions.length}</p>
+                <div className="flex items-center gap-3 mt-1">
+                  <p className="text-sm text-gray-500">Question {currentIndex + 1} of {questions.length}</p>
+                  {warnings > 0 && (
+                    <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-md">
+                      ⚠️ {warnings}/2 Warnings
+                    </span>
+                  )}
+                </div>
               </div>
               
               <div className="flex items-center gap-6">
@@ -287,11 +369,11 @@ export default function ActivePracticeTestPage() {
 
         {/* Completed State */}
         {testState === 'completed' && (
-          <div className="bg-white rounded-3xl p-12 shadow-sm border border-gray-100 text-center animate-in zoom-in-95 duration-500">
-            <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-12 h-12" />
+          <div className="bg-white rounded-3xl p-12 shadow-2xl border border-gray-100 text-center animate-in zoom-in-50 spin-in-12 fade-in duration-700 ease-out">
+            <div className="w-28 h-28 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner animate-bounce">
+              <CheckCircle2 className="w-14 h-14" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Test Submitted Successfully!</h1>
+            <h1 className="text-4xl font-black text-gray-900 mb-3 tracking-tight">Test Submitted Successfully!</h1>
             <p className="text-gray-500 mb-8">Great job completing the {paper.title}.</p>
             
             <div className="max-w-xs mx-auto bg-gray-50 rounded-2xl p-6 border border-gray-100 mb-8">
