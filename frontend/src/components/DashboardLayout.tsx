@@ -115,14 +115,29 @@ export default function DashboardLayout({ children, role, userName, userDescript
               Quick Links
             </span>
             <div className="mt-2 space-y-1">
-              <Link href="#" className="flex items-center gap-3 px-4 py-2 text-gray-600 hover:text-brand">
-                <UploadCloud className="w-4 h-4" />
-                <span className="text-sm font-medium">Upload Material</span>
-              </Link>
-              <Link href="#" className="flex items-center gap-3 px-4 py-2 text-brand font-medium hover:bg-brand-light rounded-lg">
-                <Sparkles className="w-4 h-4" />
-                <span className="text-sm">Generate Questions</span>
-              </Link>
+              {role === "trainer" ? (
+                <>
+                  <Link href="/dashboard/trainer/materials" className="flex items-center gap-3 px-4 py-2 text-gray-600 hover:text-brand">
+                    <UploadCloud className="w-4 h-4" />
+                    <span className="text-sm font-medium">Upload Material</span>
+                  </Link>
+                  <Link href="/dashboard/trainer/questions" className="flex items-center gap-3 px-4 py-2 text-brand font-medium hover:bg-brand-light rounded-lg">
+                    <Sparkles className="w-4 h-4" />
+                    <span className="text-sm">Generate Questions</span>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/dashboard/student/practice" className="flex items-center gap-3 px-4 py-2 text-gray-600 hover:text-brand">
+                    <FileText className="w-4 h-4" />
+                    <span className="text-sm font-medium">Take a Test</span>
+                  </Link>
+                  <Link href="/dashboard/student/doubts" className="flex items-center gap-3 px-4 py-2 text-brand font-medium hover:bg-brand-light rounded-lg">
+                    <Sparkles className="w-4 h-4" />
+                    <span className="text-sm">Ask Doubt AI</span>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </nav>

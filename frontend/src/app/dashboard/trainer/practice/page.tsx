@@ -29,6 +29,21 @@ export default function TrainerPracticePage() {
 
   useEffect(() => {
     fetchPapers();
+
+    const channel = supabase
+      .channel('practice_papers_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'practice_papers' },
+        (payload) => {
+          fetchPapers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleDelete = async (id: number) => {

@@ -41,26 +41,42 @@ export default function StudentDashboard() {
   };
 
   useEffect(() => {
-    // Mock student results/progress for dashboard
-    setResults({
-      overview: {
-        streak: 12,
-        testsAttempted: 8,
-        globalRank: 142,
-        averageScore: 85
-      }
-    });
-
     const fetchData = async () => {
+      // Fetch latest Live Classes
       const { data: classesData } = await supabase.from('live_classes').select('*').order('id', { ascending: false }).limit(3);
       if (classesData) setClasses(classesData);
 
-      const { data: materialsData } = await supabase.from('trainer_materials').select('*').limit(3);
+      // Fetch latest Materials
+      const { data: materialsData } = await supabase.from('trainer_materials').select('*').order('id', { ascending: false }).limit(3);
       if (materialsData) setMaterials(materialsData);
 
+      // Fetch recommended practice papers
       const { data: recommendedData } = await supabase.from('practice_papers').select('*').limit(2);
       if (recommendedData) setRecommended(recommendedData);
+      
+      // Fetch dynamic analytics from student_test_results
+      const { data: testResults } = await supabase.from('student_test_results').select('*').eq('student_name', 'Aarav Sharma');
+      
+      let avgScore = 0;
+      let testsAttempted = 0;
+      
+      if (testResults && testResults.length > 0) {
+        testsAttempted = testResults.length;
+        const totalScore = testResults.reduce((acc, curr) => acc + curr.score, 0);
+        const totalQuestions = testResults.reduce((acc, curr) => acc + curr.total_questions, 0);
+        avgScore = Math.round((totalScore / totalQuestions) * 100) || 0;
+      }
+      
+      setResults({
+        overview: {
+          streak: 12, // Still mock for demo purposes
+          testsAttempted: testsAttempted,
+          globalRank: 142, // Mock rank
+          averageScore: avgScore
+        }
+      });
     };
+    
     fetchData();
   }, []);
 
@@ -271,7 +287,7 @@ export default function StudentDashboard() {
                    }
                  }}
                  placeholder="Type your question here..." 
-                 className="flex-1 text-base px-5 py-4 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand" 
+                 className="flex-1 text-base text-gray-900 bg-white px-5 py-4 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand" 
                />
                <button 
                  onClick={() => {

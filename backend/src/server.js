@@ -22,7 +22,7 @@ const analyticsRoutes = require('./routes/analytics.routes');
 const questionsRoutes = require('./routes/questions.routes');
 const practiceRoutes = require('./routes/practice.routes');
 const studentsRoutes = require('./routes/students.routes');
-
+const aiRoutes = require('./routes/ai.routes');
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/schools', schoolRoutes);
@@ -35,7 +35,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/questions', questionsRoutes);
 app.use('/api/practice', practiceRoutes);
 app.use('/api/students', studentsRoutes);
-
+app.use('/api/ai', aiRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'EduOlympia API is running' });
 });

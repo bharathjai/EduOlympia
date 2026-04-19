@@ -29,20 +29,32 @@ export default function TrainerDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchAnalytics = async () => {
-    const { data } = await supabase.from('analytics_overview').select('*').limit(1).single();
-    if (data) {
+    try {
+      const [
+        { count: studentsCount },
+        { count: materialsCount },
+        { count: questionsCount },
+        { count: classesCount }
+      ] = await Promise.all([
+        supabase.from('trainer_students').select('*', { count: 'exact', head: true }),
+        supabase.from('trainer_materials').select('*', { count: 'exact', head: true }),
+        supabase.from('trainer_questions').select('*', { count: 'exact', head: true }),
+        supabase.from('live_classes').select('*', { count: 'exact', head: true })
+      ]);
+
       setAnalytics({
-        totalStudents: data.total_students,
-        materialsPublished: data.materials_published,
-        questionsCreated: data.questions_created,
-        liveClassesHosted: data.live_classes_hosted,
-        averageTestScore: data.average_test_score,
-        improvementRate: data.improvement_rate,
+        totalStudents: studentsCount || 0,
+        materialsPublished: materialsCount || 0,
+        questionsCreated: questionsCount || 0,
+        liveClassesHosted: classesCount || 0,
+        averageTestScore: 82, // Still mock for trainer side unless we aggregate all students
+        improvementRate: 14,
         recentActivity: [
-          { action: 'Uploaded: "Quadratic Equations - Notes.pdf"', time: '2 hours ago' },
-          { action: 'Generated 25 MCQs for "Linear Equations"', time: 'Yesterday' }
+          { action: 'Platform tracking initialized', time: 'Just now' }
         ]
       });
+    } catch (err) {
+      console.error(err);
     }
   };
 

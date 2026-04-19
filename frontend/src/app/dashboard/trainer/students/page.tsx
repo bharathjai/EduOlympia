@@ -9,6 +9,7 @@ export default function TrainerStudentsPage() {
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -110,10 +111,28 @@ export default function TrainerStudentsPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="py-4 px-6 text-right">
-                        <button className="text-gray-400 hover:text-brand transition-colors p-2 rounded-lg hover:bg-brand/10">
+                      <td className="py-4 px-6 text-right relative">
+                        <button 
+                          onClick={() => setActiveDropdown(activeDropdown === student.id ? null : student.id)}
+                          className="text-gray-400 hover:text-brand transition-colors p-2 rounded-lg hover:bg-brand/10"
+                        >
                           <MoreVertical className="w-5 h-5" />
                         </button>
+
+                        {/* Dropdown Menu */}
+                        {activeDropdown === student.id && (
+                          <div className="absolute right-6 top-14 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-20 animate-in fade-in zoom-in-95 duration-100">
+                            <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-brand/5 hover:text-brand transition-colors">
+                              View Profile
+                            </button>
+                            <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-brand/5 hover:text-brand transition-colors">
+                              Message
+                            </button>
+                            <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-brand/5 hover:text-brand transition-colors">
+                              Assign Test
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))
