@@ -2,499 +2,383 @@
 
 import DashboardLayout from "@/components/DashboardLayout";
 import { 
-  Users, 
-  BookOpen, 
-  HelpCircle, 
-  Calendar,
-  UploadCloud,
-  Sparkles,
-  FileText,
-  TrendingUp,
-  Video,
-  Calculator,
-  PieChart,
-  X,
-  Bot
+  Users, BookOpen, HelpCircle, Calendar, UploadCloud, Sparkles, FileText, 
+  TrendingUp, TrendingDown, Video, MessageSquare, BarChart3, Clock, ArrowRight, PlayCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { supabase } from "@/utils/supabase";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/utils/supabase";
+
+// --- MOCK DATA FOR CHARTS/LOGS ---
+
+const mockUpcomingClass = {
+  id: "lc-1",
+  subject: "Advanced Mathematics - Algebra",
+  date: "Today",
+  time: "14:30", // 2:30 PM
+  enrolled: 124,
+  isLaunchable: true // Simulating it's within 15 mins
+};
+
+const mockDoubts = [
+  { id: "d1", student: "Arjun Sharma", question: "In Q14 of the Geometry mock test, why do we use the sine rule instead of cosine rule?", time: "2 hours ago" },
+  { id: "d2", student: "Riya Verma", question: "Can you explain the last step of the chemical balancing equation from yesterday's notes?", time: "5 hours ago" },
+  { id: "d3", student: "Karan Singh", question: "I don't understand how the AI arrived at this conclusion for the logic puzzle.", time: "1 day ago" },
+];
+
+const mockAiLog = [
+  { action: "AI generated 12 questions for Chapter 4", time: "2 hours ago" },
+  { action: "Summary generated for Chapter 2", time: "Yesterday" },
+  { action: "AI answered 45 student doubts automatically", time: "This week" },
+];
+
+const mockActivityData = [
+  { day: "Mon", count: 420 },
+  { day: "Tue", count: 580 },
+  { day: "Wed", count: 610 },
+  { day: "Thu", count: 590 },
+  { day: "Fri", count: 750 },
+  { day: "Sat", count: 820 },
+  { day: "Sun", count: 856 },
+];
 
 export default function TrainerDashboard() {
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [activeModal, setActiveModal] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ title: '', subject: '', date: '', time: '' });
-  const [file, setFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const fetchAnalytics = async () => {
-    try {
-      const [
-        { count: studentsCount },
-        { count: materialsCount },
-        { count: questionsCount },
-        { count: classesCount }
-      ] = await Promise.all([
-        supabase.from('trainer_students').select('*', { count: 'exact', head: true }),
-        supabase.from('trainer_materials').select('*', { count: 'exact', head: true }),
-        supabase.from('trainer_questions').select('*', { count: 'exact', head: true }),
-        supabase.from('live_classes').select('*', { count: 'exact', head: true })
-      ]);
-
-      setAnalytics({
-        totalStudents: studentsCount || 0,
-        materialsPublished: materialsCount || 0,
-        questionsCreated: questionsCount || 0,
-        liveClassesHosted: classesCount || 0,
-        averageTestScore: 82, // Still mock for trainer side unless we aggregate all students
-        improvementRate: 14,
-        recentActivity: [
-          { action: 'Platform tracking initialized', time: 'Just now' }
-        ]
-      });
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const fetchClasses = async () => {
-    const { data } = await supabase.from('live_classes').select('*').order('id', { ascending: false }).limit(2);
-    if (data) {
-      setClasses(data.map(cls => ({
-        id: cls.id,
-        title: cls.title,
-        subject: cls.subject,
-        class: cls.class_grade,
-        date: cls.date,
-        time: cls.time,
-        status: cls.status,
-        studentsRegistered: cls.students_registered
-      })));
-    }
-  };
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    contentItems: 142,
+    contentTrend: 12,
+    totalQuestions: 2450,
+    questionsTrend: 8,
+    activeStudents: 856,
+    studentsTrend: -3,
+    pendingDoubts: 5,
+    doubtsTrend: 2,
+  });
 
   useEffect(() => {
-    fetchAnalytics();
-    fetchClasses();
-  }, []);
-
-  const handleActionSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      if (activeModal === 'upload') {
-        await supabase.from('trainer_materials').insert([{
-          title: formData.title,
-          subject: formData.subject,
-          class_grade: 'Class 10',
-          type: 'PDF',
-          size: '1.2 MB',
-          uploaded_at: 'Just now'
-        }]);
-      } else if (activeModal === 'practice') {
-        await supabase.from('practice_papers').insert([{
-          title: formData.title,
-          subject: 'Mathematics',
-          class_grade: 'Class 10',
-          total_questions: 20,
-          difficulty: 'Medium'
-        }]);
-      } else if (activeModal === 'class') {
-        await supabase.from('live_classes').insert([{
-          title: formData.title,
-          subject: formData.subject,
-          class_grade: 'Class 8',
-          date: formData.date,
-          time: formData.time,
-          status: 'upcoming',
-          students_registered: 0
-        }]);
+    let isMounted = true;
+    
+    const fetchStats = async () => {
+      const { count: contentCount } = await supabase.from('study_materials').select('*', { count: 'exact', head: true });
+      const { count: questionsCount } = await supabase.from('questions').select('*', { count: 'exact', head: true });
+      const { count: studentsCount } = await supabase.from('students').select('*', { count: 'exact', head: true });
+      
+      if (isMounted) {
+        setStats(prev => ({
+          ...prev,
+          contentItems: contentCount || prev.contentItems,
+          totalQuestions: questionsCount || prev.totalQuestions,
+          activeStudents: studentsCount || prev.activeStudents,
+        }));
+        setIsLoading(false);
       }
+    };
 
-      fetchAnalytics();
-      fetchClasses();
-      setActiveModal(null);
-      setFormData({ title: '', subject: '', date: '', time: '' });
-      setFile(null);
-    } catch (err) {
-      console.error(err);
-    }
-    setIsSubmitting(false);
-  };
+    fetchStats();
+
+    // Set up real-time subscriptions
+    const materialsSub = supabase.channel('trainer-materials-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_materials' }, () => { fetchStats(); })
+      .subscribe();
+
+    const questionsSub = supabase.channel('trainer-questions-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'questions' }, () => { fetchStats(); })
+      .subscribe();
+
+    const studentsSub = supabase.channel('trainer-students-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, () => { fetchStats(); })
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(materialsSub);
+      supabase.removeChannel(questionsSub);
+      supabase.removeChannel(studentsSub);
+    };
+  }, []);
 
   return (
     <DashboardLayout 
       role="trainer" 
       userName="Rahul Singh" 
-      userDescription="Trainer - Mathematics"
+      userDescription="Senior Faculty"
     >
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          Good Morning, Rahul! <span className="text-2xl">👋</span>
-        </h1>
-        <p className="text-gray-500 mt-1">Here's what's happening with your training today.</p>
-      </div>
-
-      {/* Top Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-[#FAF5FF] rounded-2xl p-5 border border-purple-100 flex items-center gap-4">
-          <div className="w-11 h-11 bg-[#E9D8FD] text-purple-600 rounded-xl flex items-center justify-center shrink-0">
-            <BookOpen className="w-5 h-5" strokeWidth={2.5} />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-purple-600 mb-0.5 uppercase tracking-wider">Total Students</p>
-            <p className="text-xl font-extrabold text-gray-900">{analytics?.totalStudents || "..."}</p>
-          </div>
-        </div>
+      <div className="pb-24 font-sans animate-in fade-in duration-500">
         
-        <div className="bg-[#F0FDF4] rounded-2xl p-5 border border-emerald-100 flex items-center gap-4">
-          <div className="w-11 h-11 bg-[#D1FAE5] text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
-            <FileText className="w-5 h-5" strokeWidth={2.5} />
-          </div>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
           <div>
-            <p className="text-[10px] font-bold text-emerald-600 mb-0.5 uppercase tracking-wider">Materials Published</p>
-            <p className="text-xl font-extrabold text-gray-900">{analytics?.materialsPublished || "..."}</p>
+            <h1 className="text-2xl font-bold text-gray-900">Trainer Dashboard</h1>
+            <p className="text-sm text-gray-500 mt-1">Overview of your platform activity, classes, and pending doubts.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard/trainer/classes" className="flex items-center gap-2 px-5 py-2.5 bg-[#5C3D99] text-white rounded-xl text-sm font-bold hover:bg-purple-900 transition-colors shadow-md shadow-purple-900/20">
+              <Video className="w-4 h-4" /> Schedule Class
+            </Link>
           </div>
         </div>
 
-        <div className="bg-[#EFF6FF] rounded-2xl p-5 border border-blue-100 flex items-center gap-4">
-          <div className="w-11 h-11 bg-[#DBEAFE] text-blue-600 rounded-xl flex items-center justify-center shrink-0">
-            <HelpCircle className="w-5 h-5" strokeWidth={2.5} />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-blue-600 mb-0.5 uppercase tracking-wider">Questions Created</p>
-            <p className="text-xl font-extrabold text-gray-900">{analytics?.questionsCreated || "..."}</p>
-          </div>
-        </div>
-
-        <div className="bg-[#FFFBEB] rounded-2xl p-5 border border-orange-100 flex items-center gap-4">
-          <div className="w-11 h-11 bg-[#FEF3C7] text-orange-600 rounded-xl flex items-center justify-center shrink-0">
-            <Calendar className="w-5 h-5" strokeWidth={2.5} />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-orange-600 mb-0.5 uppercase tracking-wider">Live Classes</p>
-            <p className="text-xl font-extrabold text-gray-900">{analytics?.liveClassesHosted || "..."}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          {/* Quick Actions */}
-          <section>
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <button onClick={() => setActiveModal('upload')} className="flex flex-col items-start text-left p-6 rounded-2xl transition-all group bg-[#F3F0FF] hover:bg-[#EBE5FF]">
-                <div className="text-brand mb-5">
-                  <UploadCloud className="w-8 h-8" strokeWidth={2} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm">Upload Study Material</h3>
-                  <p className="text-xs text-gray-500 mt-1.5">Notes, PDFs, Videos</p>
-                </div>
-              </button>
-
-              <button onClick={() => setActiveModal('generate')} className="flex flex-col items-start text-left p-6 rounded-2xl transition-all group bg-[#ECFDF5] hover:bg-[#D1FAE5]">
-                <div className="text-emerald-600 mb-5">
-                  <Sparkles className="w-8 h-8" strokeWidth={2} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm">Generate Questions with AI</h3>
-                  <p className="text-xs text-gray-500 mt-1.5">Create from Topic</p>
-                </div>
-              </button>
-
-              <button onClick={() => setActiveModal('practice')} className="flex flex-col items-start text-left p-6 rounded-2xl transition-all group bg-[#EFF6FF] hover:bg-[#DBEAFE]">
-                <div className="text-blue-600 mb-5">
-                  <FileText className="w-8 h-8" strokeWidth={2} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm">Create Practice Paper</h3>
-                  <p className="text-xs text-gray-500 mt-1.5">From Question Bank</p>
-                </div>
-              </button>
-
-              <button onClick={() => setActiveModal('class')} className="flex flex-col items-start text-left p-6 rounded-2xl transition-all group bg-[#FFFBEB] hover:bg-[#FEF3C7]">
-                <div className="text-amber-600 mb-5">
-                  <Calendar className="w-8 h-8" strokeWidth={2} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm">Schedule Live Class</h3>
-                  <p className="text-xs text-gray-500 mt-1.5">Set Date & Time</p>
-                </div>
-              </button>
+        {/* Top Stat Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          
+          <Link href="/dashboard/trainer/materials" className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between group hover:border-[#5C3D99]/30 transition-colors">
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-50 text-[#5C3D99] group-hover:bg-[#5C3D99] group-hover:text-white transition-colors">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md ${stats.contentTrend >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {stats.contentTrend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {Math.abs(stats.contentTrend)}%
+              </div>
             </div>
-          </section>
-
-          {/* Upcoming Live Classes */}
-          <section>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-gray-900">Upcoming Live Classes</h2>
-              <Link href="/dashboard/trainer/classes" className="text-sm text-brand font-medium hover:underline">View Calendar</Link>
+            <div>
+              <p className="text-3xl font-black text-gray-900">{stats.contentItems}</p>
+              <p className="text-sm font-semibold text-gray-500 mt-1">Published Content</p>
             </div>
+          </Link>
+
+          <Link href="/dashboard/trainer/questions" className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between group hover:border-[#5C3D99]/30 transition-colors">
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600 group-hover:bg-[#5C3D99] group-hover:text-white transition-colors">
+                <HelpCircle className="w-6 h-6" />
+              </div>
+              <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md ${stats.questionsTrend >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {stats.questionsTrend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {Math.abs(stats.questionsTrend)}%
+              </div>
+            </div>
+            <div>
+              <p className="text-3xl font-black text-gray-900">{stats.totalQuestions}</p>
+              <p className="text-sm font-semibold text-gray-500 mt-1">Total Questions</p>
+            </div>
+          </Link>
+
+          <Link href="/dashboard/trainer/students" className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between group hover:border-[#5C3D99]/30 transition-colors">
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600 group-hover:bg-[#5C3D99] group-hover:text-white transition-colors">
+                <Users className="w-6 h-6" />
+              </div>
+              <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md ${stats.studentsTrend >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {stats.studentsTrend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {Math.abs(stats.studentsTrend)}%
+              </div>
+            </div>
+            <div>
+              <p className="text-3xl font-black text-gray-900">{stats.activeStudents}</p>
+              <p className="text-sm font-semibold text-gray-500 mt-1">Active Students</p>
+            </div>
+          </Link>
+
+          <Link href="/dashboard/trainer/doubts" className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between group hover:border-[#5C3D99]/30 transition-colors">
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-orange-50 text-orange-600 group-hover:bg-[#5C3D99] group-hover:text-white transition-colors relative">
+                <MessageSquare className="w-6 h-6" />
+                {stats.pendingDoubts > 0 && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></span>
+                )}
+              </div>
+              <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md ${stats.doubtsTrend <= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {stats.doubtsTrend <= 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+                {Math.abs(stats.doubtsTrend)}%
+              </div>
+            </div>
+            <div>
+              <p className="text-3xl font-black text-gray-900">{stats.pendingDoubts}</p>
+              <p className="text-sm font-semibold text-gray-500 mt-1">Pending Doubts</p>
+            </div>
+          </Link>
+
+        </div>
+
+        {/* --- QUICK ACTION BAR --- */}
+        <div className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 mb-8 flex flex-wrap gap-4 items-center justify-between">
+          <div className="flex flex-wrap gap-4 w-full md:w-auto">
+            <Link href="/dashboard/trainer/materials" className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl font-bold transition-colors">
+              <UploadCloud className="w-5 h-5" /> + Upload Content
+            </Link>
+            <Link href="/dashboard/trainer/questions" className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-bold transition-colors">
+              <HelpCircle className="w-5 h-5" /> + Add Questions
+            </Link>
+            <Link href="/dashboard/trainer/classes" className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold transition-colors">
+              <Calendar className="w-5 h-5" /> Schedule Class
+            </Link>
+            <Link href="/dashboard/trainer/exams" className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-xl font-bold transition-colors">
+              <FileText className="w-5 h-5" /> Create Exam
+            </Link>
+          </div>
+        </div>
+
+        {/* --- MAIN DASHBOARD GRID --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Left Column (Wider) */}
+          <div className="lg:col-span-2 space-y-8">
             
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {classes.length === 0 ? (
-                <div className="col-span-2 text-center py-8 text-gray-500">Loading classes...</div>
-              ) : (
-                classes.map((cls, idx) => (
-                  <div key={cls.id} className="bg-[#F3F0FF] rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between min-h-[180px]">
-                    <div>
-                      <div className="flex justify-between items-start mb-3">
-                        <span className="bg-brand/10 text-brand text-[11px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">{cls.date}</span>
-                        <span className="text-xs text-gray-600 font-medium">{cls.time}</span>
+            {/* Upcoming Live Class Panel */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 shadow-xl text-white relative overflow-hidden">
+               {/* Background Elements */}
+               <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-purple-500/20 blur-3xl rounded-full"></div>
+               <div className="absolute top-10 right-10 opacity-10">
+                 <Video className="w-32 h-32" />
+               </div>
+
+               <div className="relative z-10">
+                 <div className="flex items-center gap-3 mb-6">
+                   <span className="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                     Next Session
+                   </span>
+                 </div>
+                 
+                 {mockUpcomingClass ? (
+                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                     <div>
+                       <h3 className="text-2xl md:text-3xl font-black mb-2">{mockUpcomingClass.subject}</h3>
+                       <div className="flex flex-wrap items-center gap-4 text-slate-300 font-medium">
+                         <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg"><Clock className="w-4 h-4"/> {mockUpcomingClass.date} at {mockUpcomingClass.time}</span>
+                         <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg"><Users className="w-4 h-4"/> {mockUpcomingClass.enrolled} Enrolled</span>
+                       </div>
+                     </div>
+                     <button 
+                       disabled={!mockUpcomingClass.isLaunchable}
+                       className={`px-8 py-4 rounded-xl font-extrabold flex items-center gap-2 shrink-0 transition-all ${mockUpcomingClass.isLaunchable ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}`}
+                     >
+                       <PlayCircle className="w-5 h-5" />
+                       Launch Class
+                     </button>
+                   </div>
+                 ) : (
+                   <div className="text-center py-8">
+                     <p className="text-slate-400 font-medium mb-4">No classes scheduled. Schedule a live class to engage your students.</p>
+                     <Link href="/dashboard/trainer/classes" className="inline-block px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-colors">
+                       Schedule Class
+                     </Link>
+                   </div>
+                 )}
+               </div>
+            </div>
+
+            {/* Student Activity Widget */}
+            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+               <div className="flex items-center justify-between mb-8">
+                 <div>
+                   <h3 className="text-lg font-black text-gray-900">Student Activity</h3>
+                   <p className="text-sm text-gray-500 font-medium">Daily active students over the last 7 days.</p>
+                 </div>
+                 <div className="p-3 bg-gray-50 rounded-xl">
+                   <BarChart3 className="w-6 h-6 text-gray-400" />
+                 </div>
+               </div>
+
+               {/* Custom Bar Chart */}
+               <div className="h-48 flex items-end justify-between gap-2 md:gap-4">
+                 {mockActivityData.map((data, idx) => {
+                   // Max count is around 900 for percentage calculation
+                   const heightPct = (data.count / 900) * 100;
+                   return (
+                     <div key={idx} className="flex flex-col items-center flex-1 group">
+                       <div className="relative w-full flex justify-center h-full items-end pb-2">
+                         {/* Tooltip */}
+                         <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-xs font-bold px-2 py-1 rounded-md pointer-events-none">
+                           {data.count}
+                         </div>
+                         {/* Bar */}
+                         <div 
+                           className="w-full max-w-[40px] bg-purple-100 group-hover:bg-purple-200 rounded-t-xl transition-all relative overflow-hidden"
+                           style={{ height: `${heightPct}%` }}
+                         >
+                           {/* Gradient overlay for the top part */}
+                           <div className="absolute inset-x-0 top-0 h-4 bg-purple-500/20"></div>
+                         </div>
+                       </div>
+                       <span className="text-xs font-bold text-gray-400 uppercase">{data.day}</span>
+                     </div>
+                   );
+                 })}
+               </div>
+            </div>
+
+          </div>
+
+          {/* Right Column (Narrower) */}
+          <div className="space-y-8">
+            
+            {/* Recent Doubts Panel */}
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full max-h-[500px]">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-orange-500" /> Doubts Queue
+                </h3>
+                {stats.pendingDoubts > 0 && (
+                  <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full">
+                    {stats.pendingDoubts} Pending
+                  </span>
+                )}
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+                {mockDoubts.length > 0 ? (
+                  mockDoubts.map((doubt) => (
+                    <div key={doubt.id} className="p-4 bg-gray-50 border border-gray-100 rounded-2xl hover:border-gray-200 transition-colors">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold text-gray-900">{doubt.student}</span>
+                        <span className="text-xs font-medium text-gray-400">{doubt.time}</span>
                       </div>
-                      <h3 className="font-bold text-gray-900 text-[15px] mb-1">{cls.title}</h3>
-                      <p className="text-xs text-gray-500 mb-3">{cls.class} • {cls.subject}</p>
-                      
-                      <div className="flex items-center gap-1.5 text-xs text-gray-600 font-medium mb-4 relative z-10">
-                        <Users className="w-4 h-4" />
-                        {cls.studentsRegistered} Students Registered
-                      </div>
-                    </div>
-                    
-                    <div className="relative z-10">
-                      <Link href={cls.status === 'upcoming' ? `/dashboard/trainer/live-class/${cls.id}` : '/dashboard/trainer/classes'} className="bg-brand hover:bg-brand-hover text-white text-sm font-semibold py-2 px-6 rounded-lg transition-colors flex items-center gap-2 w-fit">
-                        <Video className="w-4 h-4" />
-                        {cls.status === 'upcoming' ? 'Start Class' : 'View Details'}
+                      <p className="text-sm text-gray-600 line-clamp-2 mb-4 leading-relaxed">{doubt.question}</p>
+                      <Link 
+                        href="/dashboard/trainer/doubts"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:text-orange-700"
+                      >
+                        Reply to Student <ArrowRight className="w-3 h-3" />
                       </Link>
                     </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center py-10">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                    </div>
+                    <p className="text-gray-500 font-medium">No pending doubts.<br/>Students are all caught up!</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="pt-4 mt-4 border-t border-gray-100">
+                <Link href="/dashboard/trainer/doubts" className="w-full block text-center py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl transition-colors">
+                  View All Doubts
+                </Link>
+              </div>
+            </div>
 
-                    {/* Decorative Graphic */}
-                    <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-brand/10 rounded-full blur-2xl"></div>
-                    <div className="absolute bottom-1 -right-2 text-brand opacity-60">
-                      {idx % 2 === 0 ? <Calculator className="w-24 h-24" strokeWidth={1} /> : <PieChart className="w-24 h-24" strokeWidth={1} />}
+            {/* AI Activity Log */}
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-3xl p-6 border border-blue-100/50">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="p-2 bg-white rounded-xl shadow-sm">
+                  <Sparkles className="w-5 h-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-black text-gray-900">AI Activity</h3>
+              </div>
+
+              <div className="space-y-4">
+                {mockAiLog.map((log, idx) => (
+                  <div key={idx} className="flex gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 shrink-0"></div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800 leading-snug">{log.action}</p>
+                      <p className="text-xs text-gray-500 mt-1">{log.time}</p>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </section>
-
-          {/* Recent Activity */}
-          <section>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-gray-900">Recent Activity</h2>
-              <Link href="/dashboard/trainer/analytics" className="text-sm text-brand font-medium hover:underline">View All</Link>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-2xl p-2">
-              {!analytics ? (
-                <div className="text-center py-4 text-gray-500 text-sm">Loading activity...</div>
-              ) : (
-                (analytics?.recentActivity || []).map((activity: any, i: number) => {
-                  const isUpload = activity.action.includes('Upload');
-                  const isGen = activity.action.includes('Generat');
-                  const Icon = isUpload ? FileText : (isGen ? Sparkles : FileText);
-                  const color = isUpload ? "text-orange-500" : (isGen ? "text-emerald-500" : "text-brand");
-                  const bg = isUpload ? "bg-orange-100" : (isGen ? "bg-emerald-100" : "bg-brand/10");
-
-                  return (
-                    <div key={i} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 ${bg} ${color} rounded-full flex items-center justify-center`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900 text-sm">{activity.action}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">EduOlympia System</p>
-                        </div>
-                      </div>
-                      <span className="text-xs text-gray-400">{activity.time}</span>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="space-y-8">
-          <section className="bg-white border border-gray-200 rounded-2xl p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold text-gray-900">Performance Overview</h2>
-              <button className="text-sm text-brand font-medium hover:underline">Analytics</button>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Avg. Test Score</p>
-                <div className="flex items-end gap-2">
-                  <p className="text-2xl font-bold text-gray-900">{analytics?.averageTestScore || "..."}%</p>
-                  <span className="text-xs text-emerald-500 font-medium flex items-center pb-1">
-                    <TrendingUp className="w-3 h-3 mr-0.5" /> 5.2%
-                  </span>
-                </div>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Students Improved</p>
-                <div className="flex items-end gap-2">
-                  <p className="text-2xl font-bold text-gray-900">62%</p>
-                  <span className="text-xs text-emerald-500 font-medium flex items-center pb-1">
-                    <TrendingUp className="w-3 h-3 mr-0.5" /> {analytics?.improvementRate || "..."}%
-                  </span>
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Mock Chart Area */}
-            <div className="h-40 bg-gradient-to-t from-brand/5 to-transparent border-b border-brand rounded-lg relative flex items-end px-2">
-              <svg className="w-full h-full absolute inset-0" preserveAspectRatio="none" viewBox="0 0 100 100">
-                <path d="M0,80 Q25,60 50,70 T100,30 L100,100 L0,100 Z" fill="url(#grad)" opacity="0.1" />
-                <path d="M0,80 Q25,60 50,70 T100,30" fill="none" stroke="#4F46E5" strokeWidth="2" />
-                <defs>
-                  <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4F46E5" />
-                    <stop offset="100%" stopColor="transparent" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-          </section>
-
-          <section className="bg-gradient-to-br from-brand to-purple-700 rounded-2xl p-6 text-white shadow-lg shadow-brand/20">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-white/20 p-2 rounded-xl">
-                <Bot className="w-6 h-6 text-white" />
-              </div>
-              <h2 className="text-lg font-bold">Try AI Doubt Assistant</h2>
-            </div>
-            <p className="text-sm text-white/80 mb-6">Get instant answers and explanations for student doubts.</p>
-            <button onClick={() => setActiveModal('ai_assistant')} className="w-full bg-white text-brand font-semibold py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
-              Open Assistant
-            </button>
-          </section>
-        </div>
-      </div>
-
-      {/* Quick Action Modal Overlay */}
-      {activeModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h3 className="font-bold text-xl text-gray-900">
-                {activeModal === 'upload' && 'Upload Material'}
-                {activeModal === 'generate' && 'AI Question Generator'}
-                {activeModal === 'practice' && 'Create Practice Paper'}
-                {activeModal === 'class' && 'Schedule Live Class'}
-                {activeModal === 'ai_assistant' && 'AI Doubt Assistant'}
-              </h3>
-              <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-100">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleActionSubmit} className="p-6 space-y-4">
-              {activeModal === 'ai_assistant' ? (
-                <div>
-                   <p className="text-sm text-gray-500 mb-4">Paste a student's doubt below, and our AI will generate a detailed explanation.</p>
-                   <textarea 
-                     rows={4}
-                     placeholder="Type the doubt here..."
-                     className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all resize-none"
-                     required
-                   />
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                      {activeModal === 'generate' ? 'Topic / Subject' : 'Title'}
-                    </label>
-                    <input 
-                      type="text" 
-                      required
-                      placeholder={activeModal === 'generate' ? 'e.g., Linear Equations' : 'Enter title...'}
-                      className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
-                      value={formData.title}
-                      onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    />
-                  </div>
-
-                  {(activeModal === 'upload' || activeModal === 'class') && (
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Subject / Category</label>
-                      <input 
-                        type="text" 
-                        required
-                        placeholder="e.g., Mathematics"
-                        className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
-                        value={formData.subject}
-                        onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                      />
-                    </div>
-                  )}
-
-                  {activeModal === 'upload' && (
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Upload File</label>
-                      <input 
-                        type="file" 
-                        required
-                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 transition-all border border-dashed border-gray-300 rounded-xl p-2 cursor-pointer"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setFile(e.target.files[0]);
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {activeModal === 'class' && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Date</label>
-                        <input 
-                          type="text" 
-                          required
-                          placeholder="e.g., Tomorrow"
-                          className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
-                          value={formData.date}
-                          onChange={(e) => setFormData({...formData, date: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Time</label>
-                        <input 
-                          type="text" 
-                          required
-                          placeholder="10:00 AM"
-                          className="w-full px-4 py-3 text-gray-900 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
-                          value={formData.time}
-                          onChange={(e) => setFormData({...formData, time: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              <div className="pt-4">
-                <button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="w-full bg-brand hover:bg-brand-hover text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md shadow-brand/20 flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <span className="opacity-70">Processing...</span>
-                  ) : (
-                    <>
-                      {activeModal === 'upload' && <UploadCloud className="w-5 h-5" />}
-                      {activeModal === 'generate' && <Sparkles className="w-5 h-5" />}
-                      {activeModal === 'practice' && <FileText className="w-5 h-5" />}
-                      {activeModal === 'class' && <Calendar className="w-5 h-5" />}
-                      {activeModal === 'ai_assistant' && <Bot className="w-5 h-5" />}
-                      {activeModal === 'ai_assistant' ? 'Generate Answer' : 'Confirm & Submit'}
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
+
         </div>
-      )}
+
+      </div>
     </DashboardLayout>
   );
 }

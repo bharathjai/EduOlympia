@@ -52,4 +52,57 @@ router.post('/ask', async (req, res) => {
   }
 });
 
+router.post('/scan-content', async (req, res) => {
+  const { textContent, subject } = req.body;
+
+  if (!textContent) {
+    return res.status(400).json({ status: 'error', message: 'Content text is required for scanning.' });
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            flagged: { type: "boolean", description: "True if the content violates quality guidelines, is off-topic, or is inappropriate." },
+            concern: { type: "string", description: "Detailed explanation of the concern. Null if not flagged." },
+            readabilityScore: { type: "integer", description: "Estimated grade level for readability (e.g., 8)." }
+          },
+          required: ["flagged", "concern", "readabilityScore"]
+        }
+      }
+    });
+
+    const prompt = `
+      You are an automated quality assurance AI for EduOlympia, an educational platform.
+      Review the following extracted text from a trainer's uploaded study material.
+      
+      Checklist:
+      1. Relevance to assigned subject: ${subject || 'General Educational Content'}
+      2. Absence of inappropriate content
+      3. Basic readability and structural coherence
+      
+      Content to scan:
+      """
+      ${textContent.substring(0, 5000)}
+      """
+    `;
+
+    const result = await model.generateContent(prompt);
+    const responseData = JSON.parse(result.response.text());
+
+    res.json({
+      status: 'success',
+      analysis: responseData
+    });
+
+  } catch (error) {
+    console.error('Error calling Gemini Content Scanner:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to scan content via AI.' });
+  }
+});
+
 module.exports = router;

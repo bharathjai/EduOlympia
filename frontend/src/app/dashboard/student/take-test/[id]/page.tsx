@@ -1,150 +1,102 @@
 "use client";
 
-import DashboardLayout from "@/components/DashboardLayout";
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/utils/supabase";
-import { FileText, Clock, AlertCircle, CheckCircle2, ArrowLeft, ArrowRight, Flag } from "lucide-react";
+import { 
+  FileText, Clock, AlertCircle, CheckCircle2, ArrowLeft, ArrowRight, 
+  Flag, LayoutGrid, X, WifiOff 
+} from "lucide-react";
 import Link from "next/link";
 
-type TestState = 'intro' | 'active' | 'submitting' | 'completed';
+// --- MOCK DATA ---
+const mockPaper = {
+  id: "1",
+  title: "Math Mock Test 4",
+  subject: "Mathematics",
+  timeLimitMinutes: 10,
+  questions: [
+    { id: 101, text: "If 3x + 5 = 20, what is the value of x?", options: ["5", "10", "15", "20"] },
+    { id: 102, text: "Which of the following is a prime number?", options: ["9", "12", "17", "21"] },
+    { id: 103, text: "What is the square root of 144?", options: ["10", "12", "14", "16"] },
+    { id: 104, text: "What is 15% of 200?", options: ["15", "20", "30", "40"] },
+    { id: 105, text: "Solve: 2(x - 3) = 8", options: ["x = 7", "x = 5", "x = 11", "x = -1"] },
+    { id: 106, text: "What is the value of pi to two decimal places?", options: ["3.12", "3.14", "3.16", "3.18"] },
+    { id: 107, text: "Simplify: 5x - 2x + 3x", options: ["4x", "5x", "6x", "7x"] },
+    { id: 108, text: "A triangle has angles 45° and 90°. What is the third angle?", options: ["30°", "45°", "60°", "90°"] },
+    { id: 109, text: "What is the area of a rectangle with length 10 and width 5?", options: ["15", "30", "50", "100"] },
+    { id: 110, text: "Which of these fractions is the largest?", options: ["1/2", "3/4", "2/5", "5/8"] }
+  ]
+};
+
+type TestState = 'loading' | 'active' | 'confirm-submit' | 'submitting' | 'completed';
 
 export default function TakeTestPage() {
-  const { id } = useParams();
   const router = useRouter();
   
-  const [exam, setExam] = useState<any>(null);
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  const [testState, setTestState] = useState<TestState>('intro');
+  // Test State
+  const [testState, setTestState] = useState<TestState>('loading');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [score, setScore] = useState(0);
+  const [flags, setFlags] = useState<Set<number>>(new Set());
+  const [visited, setVisited] = useState<Set<number>>(new Set([0]));
   
-  const [timeLeft, setTimeLeft] = useState(0); // in seconds
-  const [warnings, setWarnings] = useState(0);
-  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
+  // Timer State
+  const [timeLeft, setTimeLeft] = useState(mockPaper.timeLimitMinutes * 60); // seconds
+  const [showTimeWarning, setShowTimeWarning] = useState(false);
   const isSubmittingRef = useRef(false);
 
+  // Network State
+  const [isOffline, setIsOffline] = useState(false);
+
   useEffect(() => {
-    const fetchExamDetails = async () => {
-      // Fetch exam details
-      const { data: examData, error: examError } = await supabase
-        .from('trainer_exams')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (examData) {
-        setExam({
-          id: examData.id,
-          title: examData.title,
-          subject: examData.subject,
-          class: examData.class_grade,
-          totalQuestions: 10, // Mocking total questions
-        });
-        setTimeLeft((examData.duration || 60) * 60); // convert minutes to seconds
-      }
+    // Simulate loading
+    const timer = setTimeout(() => setTestState('active'), 800);
+    return () => clearTimeout(timer);
+  }, []);
 
-      // Fetch questions (mocking options since trainer_questions only has text)
-      const { data: qData, error: qError } = await supabase
-        .from('trainer_questions')
-        .select('*');
-        
-      if (qData) {
-        const shuffled = qData.sort(() => 0.5 - Math.random());
-        const selected = shuffled.slice(0, 10).map(q => ({
-          ...q,
-          options: [
-            "Option A: " + Math.floor(Math.random() * 100),
-            "Option B: " + Math.floor(Math.random() * 100),
-            "Option C: " + Math.floor(Math.random() * 100),
-            "Option D: " + Math.floor(Math.random() * 100),
-          ],
-          correctAnswer: "Option B"
-        }));
-        setQuestions(selected);
-      }
-      
-      setLoading(false);
-    };
-
-    fetchExamDetails();
-  }, [id]);
-
-  // Timer logic
+  // Timer countdown
   useEffect(() => {
-    if (testState !== 'active' || timeLeft <= 0) return;
-    
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
+    if (testState !== 'active') return;
+
+    const timerId = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 300 && prev > 299) { // 5 minutes remaining
+          setShowTimeWarning(true);
+          setTimeout(() => setShowTimeWarning(false), 5000); // Hide toast after 5s
+        }
+        
         if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmitTest();
+          clearInterval(timerId);
+          if (!isSubmittingRef.current) {
+            handleFinalSubmit(true); // Auto submit
+          }
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
+
+    return () => clearInterval(timerId);
+  }, [testState]);
+
+  // Network offline mock
+  useEffect(() => {
+    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => setIsOffline(false);
     
-    return () => clearInterval(timer);
-  }, [testState, timeLeft]);
-
-  // Anti-cheat / Exam Privacy listeners
-  useEffect(() => {
-    if (testState !== 'active') return;
-
-    const handleViolation = (reason: string) => {
-      setWarnings(prev => {
-        const next = prev + 1;
-        if (next >= 2) {
-          alert("Maximum warnings exceeded! Your exam is being automatically submitted.");
-          setShouldAutoSubmit(true);
-        } else {
-          alert(`WARNING ${next}/2: ${reason}\n\nPlease stay in full-screen and do not switch tabs. Your exam will auto-submit after 2 warnings.`);
-          if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(e => console.log(e));
-          }
-        }
-        return next;
-      });
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        handleViolation("You switched tabs or minimized the window.");
-      }
-    };
-
-    const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && testState === 'active' && !shouldAutoSubmit && !isSubmittingRef.current) {
-        handleViolation("You exited full-screen mode.");
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+    
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
     };
-  }, [testState, shouldAutoSubmit]);
+  }, []);
 
-  useEffect(() => {
-    if (shouldAutoSubmit) {
-      handleSubmitTest();
-    }
-  }, [shouldAutoSubmit]);
-
-  const handleStartTest = async () => {
-    try {
-      await document.documentElement.requestFullscreen();
-    } catch (e) {
-      console.log("Fullscreen request failed", e);
-    }
-    setTestState('active');
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   const handleSelectAnswer = (option: string) => {
@@ -154,231 +106,297 @@ export default function TakeTestPage() {
     }));
   };
 
-  const handleSubmitTest = async () => {
-    isSubmittingRef.current = true;
-    
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(e => console.log(e));
-    }
-    
-    let calculatedScore = 0;
-    questions.forEach((q, index) => {
-      if (answers[index]) calculatedScore++; 
+  const toggleFlag = () => {
+    setFlags(prev => {
+      const newFlags = new Set(prev);
+      if (newFlags.has(currentIndex)) newFlags.delete(currentIndex);
+      else newFlags.add(currentIndex);
+      return newFlags;
     });
-    setScore(calculatedScore);
+  };
+
+  const goToQuestion = (index: number) => {
+    setCurrentIndex(index);
+    setVisited(prev => new Set(prev).add(index));
+  };
+
+  const navigateNext = () => {
+    if (currentIndex < mockPaper.questions.length - 1) {
+      goToQuestion(currentIndex + 1);
+    } else {
+      setTestState('confirm-submit');
+    }
+  };
+
+  const navigatePrev = () => {
+    if (currentIndex > 0) goToQuestion(currentIndex - 1);
+  };
+
+  const handleFinalSubmit = (isAutoSubmit: boolean = false) => {
+    isSubmittingRef.current = true;
     setTestState('submitting');
     
+    // Simulate API submission
     setTimeout(() => {
-      setTestState('completed');
-    }, 800); 
-    
-    if (exam) {
-      try {
-        await supabase.from('student_test_results').insert({
-          student_name: 'Aarav Sharma',
-          paper_id: exam.id,
-          paper_title: exam.title,
-          score: calculatedScore,
-          total_questions: questions.length
-        });
-      } catch (err) {
-        console.error("Failed to save result", err);
+      if (isAutoSubmit) {
+        alert("Time is up! Your test has been auto-submitted.");
       }
-    }
+      setTestState('completed');
+    }, 1500);
   };
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+  const getQuestionStatusColor = (index: number) => {
+    if (flags.has(index)) return 'bg-orange-100 text-orange-600 border-orange-300';
+    if (answers[index]) return 'bg-blue-600 text-white border-blue-600';
+    if (visited.has(index)) return 'bg-red-50 text-red-500 border-red-200'; // Visited but not answered
+    return 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100'; // Not visited
   };
 
-  if (loading) {
+  const unansweredCount = mockPaper.questions.length - Object.keys(answers).length;
+
+  if (testState === 'loading') {
     return (
-      <DashboardLayout role="student" userName="Aarav Sharma" userDescription="Class 8 • Delhi Public School">
-        <div className="flex items-center justify-center h-64 text-gray-500">Loading exam...</div>
-      </DashboardLayout>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-500 font-bold">Preparing your test environment...</p>
+        </div>
+      </div>
     );
   }
 
-  if (!exam) {
+  if (testState === 'completed') {
     return (
-      <DashboardLayout role="student" userName="Aarav Sharma" userDescription="Class 8 • Delhi Public School">
-        <div className="text-center py-12">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900">Exam Not Found</h2>
-          <Link href="/dashboard/student/exams" className="text-brand hover:underline mt-4 inline-block">Return to Exams</Link>
-        </div>
-      </DashboardLayout>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+         <div className="bg-white rounded-3xl p-12 shadow-2xl border border-gray-100 text-center animate-in zoom-in-50 spin-in-12 fade-in duration-700 max-w-lg w-full">
+            <div className="w-28 h-28 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner animate-bounce">
+              <CheckCircle2 className="w-14 h-14" />
+            </div>
+            <h1 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Test Submitted!</h1>
+            <p className="text-gray-500 mb-8 font-medium">Your answers have been securely saved and graded.</p>
+            
+            <button 
+              onClick={() => router.push('/dashboard/student/practice')}
+              className="w-full py-4 bg-slate-900 hover:bg-black text-white font-bold rounded-xl transition-colors shadow-md"
+            >
+              Return to Practice Dashboard
+            </button>
+         </div>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout 
-      role="student" 
-      userName="Aarav Sharma" 
-      userDescription="Class 8 • Delhi Public School"
-      isTestActive={testState === 'active' || testState === 'submitting'}
-    >
-      <div className="max-w-4xl mx-auto">
-        
-        {testState === 'intro' && (
-          <div className="bg-white rounded-3xl p-10 shadow-sm border border-gray-100 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="w-24 h-24 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <FileText className="w-12 h-12" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{exam.title}</h1>
-            <p className="text-lg text-gray-500 mb-8">{exam.subject} • {exam.class}</p>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10 text-left">
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <p className="text-sm text-gray-500 mb-1">Total Questions</p>
-                <p className="font-bold text-gray-900 text-lg">{questions.length}</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <p className="text-sm text-gray-500 mb-1">Duration</p>
-                <p className="font-bold text-gray-900 text-lg">{Math.floor(timeLeft / 60)} mins</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <p className="text-sm text-gray-500 mb-1">Format</p>
-                <p className="font-bold text-gray-900 text-lg">Formal Exam</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <p className="text-sm text-gray-500 mb-1">Proctored</p>
-                <p className="font-bold text-red-600 text-lg">Yes</p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans selection:bg-blue-100">
+      
+      {/* Network Warning */}
+      {isOffline && (
+        <div className="bg-amber-100 text-amber-800 px-4 py-3 flex items-center justify-center gap-2 font-bold text-sm shadow-sm z-50">
+          <WifiOff className="w-4 h-4" /> You are offline. Answers are saved locally. Reconnect to submit.
+        </div>
+      )}
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/dashboard/student/exams" className="px-8 py-4 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-colors">
-                Cancel
-              </Link>
-              <button 
-                onClick={handleStartTest}
-                className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-              >
-                Begin Exam Now
-              </button>
-            </div>
+      {/* Auto Submit Warning Toast */}
+      {showTimeWarning && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-full font-bold shadow-2xl flex items-center gap-2 animate-in slide-in-from-top fade-in">
+          <Clock className="w-5 h-5 animate-pulse" /> 5 minutes remaining — please submit soon!
+        </div>
+      )}
+
+      {/* Top Header Bar */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="bg-blue-50 text-blue-700 text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg shrink-0">
+            {mockPaper.subject}
           </div>
-        )}
+          <h1 className="text-lg font-extrabold text-gray-900 hidden sm:block truncate">
+            {mockPaper.title}
+          </h1>
+        </div>
 
-        {(testState === 'active' || testState === 'submitting') && questions.length > 0 && (
-          <div className={`transition-all duration-700 transform ${testState === 'submitting' ? 'scale-90 opacity-0 -translate-y-20 blur-sm pointer-events-none' : 'animate-in fade-in slide-in-from-bottom-4'}`}>
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row justify-between items-center gap-4 sticky top-6 z-10">
-              <div>
-                <h2 className="font-bold text-gray-900 line-clamp-1">{exam.title}</h2>
-                <div className="flex items-center gap-3 mt-1">
-                  <p className="text-sm text-gray-500">Question {currentIndex + 1} of {questions.length}</p>
-                  {warnings > 0 && (
-                    <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-md">
-                      ⚠️ {warnings}/2 Warnings
-                    </span>
-                  )}
-                </div>
-              </div>
+        {/* Timer */}
+        <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono font-bold text-lg transition-colors shadow-sm border ${timeLeft < 300 ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-slate-100 text-slate-800 border-slate-200'}`}>
+          <Clock className="w-5 h-5" />
+          {formatTime(timeLeft)}
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+        
+        {/* Left: Question Navigator Panel (Sidebar on Desktop, Top on Mobile) */}
+        <div className="lg:w-80 bg-white border-r border-gray-200 shrink-0 flex flex-col p-6 overflow-y-auto custom-scrollbar">
+          <div className="flex items-center gap-2 mb-6">
+            <LayoutGrid className="w-5 h-5 text-gray-400" />
+            <h2 className="font-extrabold text-gray-900">Question Navigator</h2>
+          </div>
+          
+          <div className="grid grid-cols-5 gap-2 mb-8">
+            {mockPaper.questions.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => goToQuestion(idx)}
+                className={`aspect-square rounded-xl font-bold text-sm border-2 transition-all flex items-center justify-center hover:scale-105 ${getQuestionStatusColor(idx)} ${currentIndex === idx ? 'ring-4 ring-blue-500/20 shadow-md transform scale-105' : ''}`}
+              >
+                {idx + 1}
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-3 text-xs font-bold text-gray-500 mt-auto bg-gray-50 p-4 rounded-2xl border border-gray-100">
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-gray-100 border border-gray-300"></div> Not Visited</div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-red-50 border border-red-200"></div> Skipped</div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-blue-600 border border-blue-600"></div> Answered</div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-orange-100 border border-orange-300"></div> Flagged</div>
+          </div>
+        </div>
+
+        {/* Right: Question Area */}
+        <div className="flex-1 flex flex-col relative overflow-hidden bg-slate-50/50">
+          
+          {/* Progress Bar under header on mobile */}
+          <div className="h-1 bg-gray-200 w-full lg:hidden block">
+            <div className="h-1 bg-blue-600 transition-all" style={{ width: `${((currentIndex + 1) / mockPaper.questions.length) * 100}%` }}></div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar">
+            <div className="max-w-3xl mx-auto w-full">
               
-              <div className="flex items-center gap-6">
-                <div className="w-48 bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                  <div 
-                    className="bg-brand h-2.5 rounded-full transition-all duration-300" 
-                    style={{ width: (((currentIndex + 1) / questions.length) * 100) + '%' }}
-                  ></div>
-                </div>
-                
-                <div className="flex items-center gap-2 text-red-600 bg-red-50 px-4 py-2 rounded-lg font-mono font-bold">
-                  <Clock className="w-5 h-5" />
-                  {formatTime(timeLeft)}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-6 min-h-[400px]">
-              <div className="flex justify-between items-start mb-6">
-                <h3 className="text-xl font-medium text-gray-900 leading-relaxed">
-                  <span className="text-gray-400 font-bold mr-2">{currentIndex + 1}.</span>
-                  {questions[currentIndex].question_text}
-                </h3>
-                <button className="text-gray-400 hover:text-brand transition-colors p-2" title="Flag for review">
-                  <Flag className="w-5 h-5" />
-                </button>
+              <div className="flex items-center justify-between mb-8">
+                <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+                  Question {currentIndex + 1} of {mockPaper.questions.length}
+                </span>
               </div>
 
-              <div className="space-y-3 mt-8">
-                {questions[currentIndex].options.map((option: string, i: number) => {
+              {/* Question Text */}
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 leading-snug mb-12">
+                {mockPaper.questions[currentIndex].text}
+              </h2>
+
+              {/* MCQ Options */}
+              <div className="space-y-4 mb-10">
+                {mockPaper.questions[currentIndex].options.map((option, idx) => {
                   const isSelected = answers[currentIndex] === option;
                   return (
-                    <button
-                      key={i}
-                      onClick={() => handleSelectAnswer(option)}
-                      className={"w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-4 group " + (isSelected ? "border-brand bg-brand/5" : "border-gray-100 hover:border-gray-300 hover:bg-gray-50")}
+                    <label 
+                      key={idx} 
+                      className={`flex items-center gap-5 p-5 rounded-2xl border-2 cursor-pointer transition-all ${isSelected ? 'border-blue-600 bg-blue-50/30 shadow-sm' : 'border-gray-200 hover:border-blue-300 hover:bg-white bg-white'}`}
                     >
-                      <div className={"w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 transition-colors " + (isSelected ? "bg-brand text-white" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200")}>
-                        {String.fromCharCode(65 + i)}
+                      <div className="relative flex items-center justify-center shrink-0">
+                        <input 
+                          type="radio" 
+                          name={`q-${currentIndex}`} 
+                          value={option}
+                          checked={isSelected}
+                          onChange={() => handleSelectAnswer(option)}
+                          className="peer sr-only"
+                        />
+                        <div className={`w-6 h-6 rounded-full border-2 transition-colors flex items-center justify-center ${isSelected ? 'border-blue-600' : 'border-gray-300'}`}>
+                           {isSelected && <div className="w-3 h-3 bg-blue-600 rounded-full animate-in zoom-in"></div>}
+                        </div>
                       </div>
-                      <span className={"text-lg " + (isSelected ? "text-brand font-medium" : "text-gray-700")}>
+                      <span className={`text-lg transition-colors ${isSelected ? 'font-bold text-blue-900' : 'text-gray-700 font-medium'}`}>
                         {option}
                       </span>
-                    </button>
+                    </label>
                   );
                 })}
               </div>
-            </div>
 
-            <div className="flex justify-between items-center">
+              {/* Flag Action */}
               <button 
-                onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
-                disabled={currentIndex === 0}
-                className="px-6 py-3 font-semibold rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white text-gray-700 shadow-sm border border-gray-200"
+                onClick={toggleFlag}
+                className={`flex items-center gap-2 text-sm font-bold transition-colors px-4 py-2 rounded-lg -ml-4 ${flags.has(currentIndex) ? 'text-orange-600 bg-orange-50' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50/50'}`}
               >
-                <ArrowLeft className="w-5 h-5" /> Previous
+                <Flag className={`w-4 h-4 ${flags.has(currentIndex) ? 'fill-current' : ''}`} /> 
+                {flags.has(currentIndex) ? 'Flagged for review' : 'Flag this question'}
+              </button>
+
+            </div>
+          </div>
+
+          {/* Bottom Navigation Bar */}
+          <div className="bg-white border-t border-gray-200 p-4 md:px-12 flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)]">
+             <button 
+                onClick={navigatePrev}
+                disabled={currentIndex === 0}
+                className="px-6 py-3.5 font-bold rounded-xl flex items-center gap-2 transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 text-gray-700"
+              >
+                <ArrowLeft className="w-5 h-5" /> <span className="hidden sm:inline">Previous</span>
               </button>
               
-              {currentIndex === questions.length - 1 ? (
+              {currentIndex === mockPaper.questions.length - 1 ? (
                 <button 
-                  onClick={handleSubmitTest}
-                  className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-2"
+                  onClick={() => setTestState('confirm-submit')}
+                  className="px-8 py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-extrabold rounded-xl transition-all shadow-md flex items-center gap-2 hover:shadow-lg hover:-translate-y-0.5"
                 >
-                  <CheckCircle2 className="w-5 h-5" /> Submit Exam
+                  Submit Test <CheckCircle2 className="w-5 h-5" />
                 </button>
               ) : (
                 <button 
-                  onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))}
-                  className="px-6 py-3 bg-brand hover:bg-brand-hover text-white font-semibold rounded-xl transition-all shadow-md flex items-center gap-2"
+                  onClick={navigateNext}
+                  className="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl transition-all shadow-md flex items-center gap-2 hover:shadow-lg hover:-translate-y-0.5"
                 >
-                  Next <ArrowRight className="w-5 h-5" />
+                  <span className="hidden sm:inline">Next</span> <ArrowRight className="w-5 h-5" />
                 </button>
               )}
-            </div>
           </div>
-        )}
-
-        {testState === 'completed' && (
-          <div className="bg-white rounded-3xl p-12 shadow-2xl border border-gray-100 text-center animate-in zoom-in-50 spin-in-12 fade-in duration-700 ease-out">
-            <div className="w-28 h-28 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner animate-bounce">
-              <CheckCircle2 className="w-14 h-14" />
-            </div>
-            <h1 className="text-4xl font-black text-gray-900 mb-3 tracking-tight">Exam Submitted Successfully!</h1>
-            <p className="text-gray-500 mb-8">Great job completing the {exam.title}.</p>
-            
-            <div className="max-w-xs mx-auto bg-gray-50 rounded-2xl p-6 border border-gray-100 mb-8">
-              <p className="text-sm text-gray-500 font-semibold mb-1">Your Score (Demo)</p>
-              <div className="text-5xl font-black text-brand mb-2">
-                {score}<span className="text-2xl text-gray-400">/{questions.length}</span>
-              </div>
-              <p className="text-sm text-gray-400">Questions Answered: {Object.keys(answers).length}</p>
-            </div>
-
-            <Link 
-              href="/dashboard/student/exams" 
-              className="inline-block px-8 py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-xl transition-colors shadow-md"
-            >
-              Return to Exams
-            </Link>
-          </div>
-        )}
-
+        </div>
       </div>
-    </DashboardLayout>
+
+      {/* Confirmation Modal Overlay */}
+      {testState === 'confirm-submit' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-300">
+             <div className="p-8">
+               <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 mx-auto bg-orange-100 text-orange-600">
+                 <AlertCircle className="w-8 h-8" />
+               </div>
+               <h3 className="text-2xl font-black text-center text-gray-900 mb-2">Submit Test?</h3>
+               <p className="text-center text-gray-500 mb-8 font-medium">Are you sure you want to finish and submit your practice test?</p>
+               
+               {unansweredCount > 0 && (
+                 <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-8 text-center">
+                   <p className="text-red-800 font-bold">You have <span className="text-red-600 text-xl mx-1">{unansweredCount}</span> unanswered questions.</p>
+                   <p className="text-xs text-red-600/80 mt-1 uppercase tracking-wider font-bold">Submit anyway?</p>
+                 </div>
+               )}
+
+               <div className="flex flex-col gap-3">
+                 <button 
+                   onClick={() => handleFinalSubmit()}
+                   className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-extrabold rounded-xl transition-all shadow-md"
+                 >
+                   Yes, Submit Now
+                 </button>
+                 <button 
+                   onClick={() => setTestState('active')}
+                   className="w-full py-4 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold rounded-xl transition-colors border border-gray-200"
+                 >
+                   Cancel & Continue Checking
+                 </button>
+               </div>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submitting Overlay */}
+      {testState === 'submitting' && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-md animate-in fade-in">
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin mb-4"></div>
+            <p className="text-orange-600 font-bold text-lg">Submitting your test...</p>
+          </div>
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+      `}} />
+    </div>
   );
 }

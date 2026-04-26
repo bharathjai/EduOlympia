@@ -23,6 +23,14 @@ const questionsRoutes = require('./routes/questions.routes');
 const practiceRoutes = require('./routes/practice.routes');
 const studentsRoutes = require('./routes/students.routes');
 const aiRoutes = require('./routes/ai.routes');
+const trainersRoutes = require('./routes/trainers.routes');
+const approvalsRoutes = require('./routes/approvals.routes');
+const awardsRoutes = require('./routes/awards.routes');
+const billingRoutes = require('./routes/billing.routes');
+const settingsRoutes = require('./routes/settings.routes');
+const reportsRoutes = require('./routes/reports.routes');
+const certificatesRoutes = require('./routes/certificates.routes');
+
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/schools', schoolRoutes);
@@ -36,6 +44,14 @@ app.use('/api/questions', questionsRoutes);
 app.use('/api/practice', practiceRoutes);
 app.use('/api/students', studentsRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/trainers', trainersRoutes);
+app.use('/api/approvals', approvalsRoutes);
+app.use('/api/awards', awardsRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/certificates', certificatesRoutes);
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'EduOlympia API is running' });
 });

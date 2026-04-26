@@ -12,9 +12,21 @@ export default function LiveClassesPage() {
 
   useEffect(() => {
     const fetchClasses = async () => {
-      const { data, error } = await supabase.from('live_classes').select('*').order('id', { ascending: false });
+      const { data, error } = await supabase.from('live_classes').select('*').order('scheduled_at', { ascending: true });
       if (!error && data) {
-        setClasses(data);
+        const now = new Date();
+        const formatted = data.map((cls: any) => {
+          const date = new Date(cls.scheduled_at);
+          return {
+            id: cls.id,
+            title: cls.title,
+            subject: cls.subject || 'General',
+            date: date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+            time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            status: cls.status === 'completed' || date < now ? 'completed' : 'upcoming'
+          };
+        });
+        setClasses(formatted);
       }
       setLoading(false);
     };
