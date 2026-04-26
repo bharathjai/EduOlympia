@@ -23,7 +23,7 @@ export default function StudentDashboard() {
   const [stats, setStats] = useState({
     subjectsEnrolled: 4,
     practiceTests: 12,
-    examRank: 42,
+    examRank: 42 as number | string,
     attendance: 94
   });
 

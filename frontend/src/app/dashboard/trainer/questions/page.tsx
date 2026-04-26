@@ -262,7 +262,7 @@ export default function QuestionBankPage() {
                 <h2 className="text-xl font-bold text-gray-900 leading-relaxed mb-8">{selectedQuestion.text}</h2>
                 
                 <div className="space-y-3 mb-8">
-                  {selectedQuestion.options.map((opt, idx) => {
+                  {selectedQuestion.options.map((opt: string, idx: number) => {
                     const isCorrect = idx === selectedQuestion.correctAnswerIndex;
                     return (
                       <div key={idx} className={`flex items-start gap-4 p-4 rounded-2xl border-2 transition-all ${isCorrect ? 'border-emerald-500 bg-emerald-50/30' : 'border-gray-100 bg-white'}`}>

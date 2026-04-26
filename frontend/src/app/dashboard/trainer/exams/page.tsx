@@ -5,7 +5,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { 
   FileText, Search, Plus, Filter, Trash2, GripVertical, Settings2, 
-  ChevronDown, ChevronUp, AlertTriangle, Sparkles, Check, Loader2, Save, Send, AlertCircle, RefreshCw
+  ChevronDown, ChevronUp, AlertTriangle, Sparkles, Check, Loader2, Save, Send, AlertCircle, RefreshCw, X
 } from "lucide-react";
 import { supabase } from "@/utils/supabase";
 import { useEffect } from "react";

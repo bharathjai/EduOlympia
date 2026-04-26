@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useState } from "react";
 import { 
   Calendar, Video, Plus, Users, Clock, PlayCircle, FileText, 
-  Trash2, X, Edit3, ChevronLeft, ChevronRight, VideoIcon, Download, AlertCircle, Play
+  Trash2, X, Edit3, ChevronLeft, ChevronRight, VideoIcon, Download, AlertCircle, Play, Loader2
 } from "lucide-react";
 import { supabase } from "@/utils/supabase";
 import { useEffect } from "react";

@@ -4,8 +4,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  Trophy, Medal, Share2, Download, BarChart2, Users, 
+import {
+  Trophy, Medal, Share2, Download, BarChart2, Users,
   Sparkles, Award, CheckCircle2, ArrowLeft, Star, FileBadge, ChevronRight, Clock
 } from "lucide-react";
 
@@ -44,7 +44,7 @@ type Tab = 'overview' | 'leaderboard' | 'ai-feedback' | 'certificate';
 export default function ExamResultPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  
+
   // AI Feedback State
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
@@ -97,22 +97,22 @@ export default function ExamResultPage() {
     2: { bg: 'bg-slate-200', text: 'text-slate-600', border: 'border-slate-300', gradient: 'from-slate-300 to-slate-400' },
     3: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300', gradient: 'from-orange-400 to-amber-600' }
   };
-  const currentRankColor = mockResult.rank <= 3 ? rankColors[mockResult.rank as 1|2|3] : { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', gradient: 'from-blue-500 to-indigo-500' };
+  const currentRankColor = mockResult.rank <= 3 ? rankColors[mockResult.rank as 1 | 2 | 3] : { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', gradient: 'from-blue-500 to-indigo-500' };
 
   return (
     <DashboardLayout role="student" userName="Arjun Sharma" userDescription="Class 8 • Delhi Public School">
       <div className="max-w-6xl mx-auto pb-24 font-sans animate-in fade-in duration-500">
-        
+
         {/* Top Navigation & Actions */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          <Link 
-            href="/dashboard/student" 
+          <Link
+            href="/dashboard/student"
             className="flex items-center gap-2 text-gray-500 hover:text-gray-900 font-bold transition-colors"
           >
             <ArrowLeft className="w-5 h-5" /> Back to Dashboard
           </Link>
-          
-          <button 
+
+          <button
             onClick={copyShareLink}
             className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-5 py-2 rounded-xl font-bold transition-colors"
           >
@@ -122,81 +122,81 @@ export default function ExamResultPage() {
 
         {/* --- HERO RANK CARD --- */}
         <div className={`rounded-3xl p-8 md:p-12 mb-8 shadow-xl relative overflow-hidden bg-gradient-to-br ${currentRankColor.gradient}`}>
-          
+
           {/* Trophy Background Watermark */}
           {isPodium && (
             <Trophy className="absolute -right-10 -bottom-10 w-96 h-96 text-white opacity-10 transform -rotate-12 pointer-events-none" />
           )}
 
           <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-             
-             {/* Rank Badge */}
-             <div className="shrink-0 flex flex-col items-center justify-center w-40 h-40 bg-white/20 backdrop-blur-md rounded-full border border-white/40 shadow-inner">
-               {mockResult.rank === 1 ? (
-                 <Trophy className="w-14 h-14 text-yellow-300 mb-1" />
-               ) : mockResult.rank === 2 ? (
-                 <Medal className="w-14 h-14 text-slate-200 mb-1" />
-               ) : mockResult.rank === 3 ? (
-                 <Medal className="w-14 h-14 text-orange-300 mb-1" />
-               ) : (
-                 <Award className="w-14 h-14 text-white mb-1" />
-               )}
-               <span className="text-xs font-bold text-white/90 uppercase tracking-widest">Rank</span>
-               <span className="text-4xl font-black text-white">{mockResult.rank}</span>
-             </div>
 
-             <div className="flex-1 text-center md:text-left text-white">
-               <span className="inline-block px-3 py-1 bg-white/20 rounded-lg text-xs font-bold uppercase tracking-widest mb-3 backdrop-blur-sm border border-white/20">
-                 Formal Exam Result
-               </span>
-               <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tight">{mockResult.title}</h1>
-               <p className="text-white/80 font-medium text-lg mb-8">{mockResult.subject} • Conducted on {mockResult.date}</p>
+            {/* Rank Badge */}
+            <div className="shrink-0 flex flex-col items-center justify-center w-40 h-40 bg-white/20 backdrop-blur-md rounded-full border border-white/40 shadow-inner">
+              {mockResult.rank === 1 ? (
+                <Trophy className="w-14 h-14 text-yellow-300 mb-1" />
+              ) : mockResult.rank === 2 ? (
+                <Medal className="w-14 h-14 text-slate-200 mb-1" />
+              ) : mockResult.rank === 3 ? (
+                <Medal className="w-14 h-14 text-orange-300 mb-1" />
+              ) : (
+                <Award className="w-14 h-14 text-white mb-1" />
+              )}
+              <span className="text-xs font-bold text-white/90 uppercase tracking-widest">Rank</span>
+              <span className="text-4xl font-black text-white">{mockResult.rank}</span>
+            </div>
 
-               <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 px-5 py-3 rounded-2xl">
-                   <p className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1">Score</p>
-                   <p className="text-2xl font-black">{mockResult.score}%</p>
-                 </div>
-                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 px-5 py-3 rounded-2xl">
-                   <p className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1">Marks</p>
-                   <p className="text-2xl font-black">{mockResult.marksObtained} <span className="text-sm font-bold text-white/60">/ {mockResult.totalMarks}</span></p>
-                 </div>
-                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 px-5 py-3 rounded-2xl">
-                   <p className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1">Percentile</p>
-                   <p className="text-2xl font-black">Top {100 - mockResult.percentile}%</p>
-                 </div>
-               </div>
-             </div>
+            <div className="flex-1 text-center md:text-left text-white">
+              <span className="inline-block px-3 py-1 bg-white/20 rounded-lg text-xs font-bold uppercase tracking-widest mb-3 backdrop-blur-sm border border-white/20">
+                Formal Exam Result
+              </span>
+              <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tight">{mockResult.title}</h1>
+              <p className="text-white/80 font-medium text-lg mb-8">{mockResult.subject} • Conducted on {mockResult.date}</p>
+
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 px-5 py-3 rounded-2xl">
+                  <p className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1">Score</p>
+                  <p className="text-2xl font-black">{mockResult.score}%</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 px-5 py-3 rounded-2xl">
+                  <p className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1">Marks</p>
+                  <p className="text-2xl font-black">{mockResult.marksObtained} <span className="text-sm font-bold text-white/60">/ {mockResult.totalMarks}</span></p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 px-5 py-3 rounded-2xl">
+                  <p className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1">Percentile</p>
+                  <p className="text-2xl font-black">Top {100 - mockResult.percentile}%</p>
+                </div>
+              </div>
+            </div>
 
           </div>
         </div>
 
         {/* --- MAIN CONTENT TABS --- */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          
+
           {/* Left Sidebar (Tabs) */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 flex flex-col gap-2 sticky top-24">
-              <button 
+              <button
                 onClick={() => handleTabChange('overview')}
                 className={`flex items-center gap-3 p-4 rounded-2xl font-bold transition-all text-left ${activeTab === 'overview' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
               >
                 <BarChart2 className="w-5 h-5" /> Score Breakdown
               </button>
-              <button 
+              <button
                 onClick={() => handleTabChange('leaderboard')}
                 className={`flex items-center gap-3 p-4 rounded-2xl font-bold transition-all text-left ${activeTab === 'leaderboard' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
               >
                 <Users className="w-5 h-5" /> Leaderboard
               </button>
-              <button 
+              <button
                 onClick={() => handleTabChange('ai-feedback')}
                 className={`flex items-center gap-3 p-4 rounded-2xl font-bold transition-all text-left ${activeTab === 'ai-feedback' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
               >
                 <Sparkles className="w-5 h-5" /> AI Feedback
               </button>
               {mockResult.rank <= 3 && (
-                <button 
+                <button
                   onClick={() => handleTabChange('certificate')}
                   className={`flex items-center justify-between p-4 rounded-2xl font-bold transition-all text-left ${activeTab === 'certificate' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
@@ -209,25 +209,25 @@ export default function ExamResultPage() {
 
           {/* Right Content Area */}
           <div className="lg:col-span-3">
-            
+
             {/* OVERVIEW TAB */}
             {activeTab === 'overview' && (
               <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4">
                 <h3 className="text-xl font-bold text-gray-900 mb-8">Performance Breakdown</h3>
-                
+
                 <div className="flex flex-col md:flex-row items-center gap-12">
                   {/* CSS-only Doughnut Chart representation */}
                   <div className="relative w-48 h-48 shrink-0">
                     <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
                       {/* Background Ring */}
                       <path className="text-gray-100 stroke-current" strokeWidth="6" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                      
+
                       {/* Correct (Green) */}
                       <path className="text-emerald-500 stroke-current" strokeWidth="6" strokeDasharray={`${correctPct}, 100`} fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                      
+
                       {/* Wrong (Red) */}
                       <path className="text-red-500 stroke-current" strokeWidth="6" strokeDasharray={`${wrongPct}, 100`} strokeDashoffset={`-${correctPct}`} fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                      
+
                       {/* Skipped (Gray) */}
                       <path className="text-gray-400 stroke-current" strokeWidth="6" strokeDasharray={`${skippedPct}, 100`} strokeDashoffset={`-${correctPct + wrongPct}`} fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                     </svg>
@@ -278,11 +278,11 @@ export default function ExamResultPage() {
                     <p className="text-2xl font-black text-blue-600">{mockResult.rank}</p>
                   </div>
                 </div>
-                
+
                 <div className="p-0">
                   {mockResult.leaderboard.map((student, idx) => (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className={`flex items-center justify-between p-4 md:p-6 border-b border-gray-100 transition-colors ${student.isCurrentUser ? 'bg-blue-50/50 border-blue-100' : 'hover:bg-gray-50'}`}
                     >
                       <div className="flex items-center gap-4 md:gap-6">
@@ -290,10 +290,10 @@ export default function ExamResultPage() {
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0 ${student.rank === 1 ? 'bg-yellow-100 text-yellow-700' : student.rank === 2 ? 'bg-slate-200 text-slate-700' : student.rank === 3 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>
                           #{student.rank}
                         </div>
-                        
+
                         <div>
                           <h4 className={`font-bold text-lg flex items-center gap-2 ${student.isCurrentUser ? 'text-blue-900' : 'text-gray-900'}`}>
-                            {student.name} 
+                            {student.name}
                             {student.isCurrentUser && <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] uppercase tracking-widest rounded-md">You</span>}
                           </h4>
                           <p className="text-sm text-gray-500">{student.school}</p>
@@ -312,7 +312,7 @@ export default function ExamResultPage() {
             {/* AI FEEDBACK TAB */}
             {activeTab === 'ai-feedback' && (
               <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-gray-100 min-h-[400px] flex flex-col animate-in fade-in slide-in-from-bottom-4">
-                
+
                 <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-100">
                   <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                     <Sparkles className="w-6 h-6 text-blue-600" />
@@ -344,13 +344,13 @@ export default function ExamResultPage() {
             {/* CERTIFICATE TAB */}
             {activeTab === 'certificate' && isPodium && (
               <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4">
-                
+
                 <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
                   <div>
                     <h3 className="text-xl font-bold text-gray-900 mb-2">Your Certificate of Merit</h3>
                     <p className="text-gray-500">Congratulations! As a top 3 finisher, you have earned a formal certificate.</p>
                   </div>
-                  <button 
+                  <button
                     onClick={handleDownloadCert}
                     className="shrink-0 flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-6 py-3 rounded-xl font-bold transition-colors shadow-md"
                   >
@@ -360,14 +360,14 @@ export default function ExamResultPage() {
 
                 {/* Certificate Preview Mock */}
                 <div className="aspect-[1.414] w-full max-w-2xl mx-auto bg-slate-50 border-8 border-double border-slate-300 p-8 flex flex-col items-center justify-center text-center shadow-inner relative overflow-hidden group cursor-pointer" onClick={handleDownloadCert}>
-                  
+
                   <div className="absolute inset-0 bg-white/40 group-hover:bg-white/0 transition-colors pointer-events-none"></div>
 
                   <Award className={`w-20 h-20 mb-6 ${mockResult.rank === 1 ? 'text-yellow-500' : mockResult.rank === 2 ? 'text-slate-400' : 'text-orange-500'}`} />
-                  
+
                   <h4 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">Certificate of Merit</h4>
                   <h2 className="text-4xl font-serif text-slate-900 mb-6">EduOlympia</h2>
-                  
+
                   <p className="text-gray-600 mb-4">This is proudly presented to</p>
                   <h3 className="text-3xl font-bold text-blue-900 mb-4 font-serif">Arjun Sharma</h3>
                   <p className="text-gray-600 max-w-md mx-auto mb-10">

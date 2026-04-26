@@ -2,12 +2,12 @@
 
 import DashboardLayout from "@/components/DashboardLayout";
 import { Search, Filter, Plus, Upload, MoreVertical, FileDown, CheckCircle2, AlertCircle, X, ChevronDown, Trash2, KeyRound, FolderTree, Users } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase";
 
-export default function StudentManagement() {
+function StudentManagementContent() {
   const searchParams = useSearchParams();
   const initFilter = searchParams?.get("filter") || "all";
 
@@ -446,5 +446,13 @@ export default function StudentManagement() {
       )}
 
     </DashboardLayout>
+  );
+}
+
+export default function StudentManagement() {
+  return (
+    <Suspense fallback={<div>Loading Students...</div>}>
+      <StudentManagementContent />
+    </Suspense>
   );
 }

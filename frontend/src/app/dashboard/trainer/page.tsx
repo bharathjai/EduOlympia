@@ -3,7 +3,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { 
   Users, BookOpen, HelpCircle, Calendar, UploadCloud, Sparkles, FileText, 
-  TrendingUp, TrendingDown, Video, MessageSquare, BarChart3, Clock, ArrowRight, PlayCircle
+  TrendingUp, TrendingDown, Video, MessageSquare, BarChart3, Clock, ArrowRight, PlayCircle, CheckCircle2
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import Link from "next/link";

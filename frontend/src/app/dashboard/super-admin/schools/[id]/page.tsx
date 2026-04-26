@@ -3,10 +3,10 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Building2, Users, FileText, CreditCard, ArrowLeft, TrendingUp, Download, CheckCircle, Ban, Edit, MessageSquare, Key, Shield, AlertCircle, ChevronRight, Check, Search, Filter, MessageCircle, X } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect, useMemo } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
 import { supabase } from "@/utils/supabase";
 
-export default function SchoolDetail() {
+function SchoolDetailContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -510,5 +510,13 @@ export default function SchoolDetail() {
       )}
 
     </DashboardLayout>
+  );
+}
+
+export default function SchoolDetail() {
+  return (
+    <Suspense fallback={<div>Loading School Details...</div>}>
+      <SchoolDetailContent />
+    </Suspense>
   );
 }

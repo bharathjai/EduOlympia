@@ -2,12 +2,12 @@
 
 import DashboardLayout from "@/components/DashboardLayout";
 import { Users, Activity, Trophy, Calendar, Sparkles, TrendingUp, TrendingDown, Bell, BellRing, ChevronRight, FileText, Download, ShieldAlert, Award, X, Key, UserPlus } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase";
 
-export default function SchoolDashboard() {
+function SchoolDashboardContent() {
   const searchParams = useSearchParams();
   const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
   const [showToast, setShowToast] = useState("");
@@ -405,5 +405,13 @@ export default function SchoolDashboard() {
       )}
 
     </DashboardLayout>
+  );
+}
+
+export default function SchoolDashboard() {
+  return (
+    <Suspense fallback={<div>Loading Dashboard...</div>}>
+      <SchoolDashboardContent />
+    </Suspense>
   );
 }
