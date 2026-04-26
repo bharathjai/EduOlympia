@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   Trophy, Medal, Share2, Download, BarChart2, Users, 
-  Sparkles, Award, CheckCircle2, ArrowLeft, Star, FileBadge, ChevronRight
+  Sparkles, Award, CheckCircle2, ArrowLeft, Star, FileBadge, ChevronRight, Clock
 } from "lucide-react";
 
 // --- MOCK DATA ---
