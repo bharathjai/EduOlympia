@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2, CheckCircle2, AlertCircle, Sparkles, Mail, Lock, ArrowRight, ShieldCheck } from "lucide-react";
+import { supabase } from "@/utils/supabase";
 
 function LoginContent() {
   const router = useRouter();
@@ -27,6 +28,7 @@ function LoginContent() {
   const [forgotSent, setForgotSent] = useState(false);
   
   const [successToast, setSuccessToast] = useState(false);
+  const [redirectingTo, setRedirectingTo] = useState("dashboard");
 
   // Strength indicator
   const calculateStrength = (pass: string) => {
@@ -50,7 +52,7 @@ function LoginContent() {
     }
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setIsError(true);
@@ -60,17 +62,60 @@ function LoginContent() {
     setIsLoading(true);
     setIsError(false);
     
-    // Simulate API call
-    setTimeout(() => {
-      if (email === "error@test.com" || password === "wrong") {
-        setIsError(true);
-        setIsLoading(false);
-      } else {
-        setSuccessToast(true);
-        setTimeout(() => {
-          router.push('/dashboard/student');
-        }, 1500);
+    try {
+      // Check user role from Supabase based on email
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('email', email)
+        .single();
+        
+      if (error || !user) {
+        // If user not in DB, fallback check for dummy domains/usernames
+        let dummyRole = "student";
+        const emailLower = email.toLowerCase();
+        
+        if (emailLower.includes("superadmin") || emailLower.includes("super-admin") || emailLower === "admin" || emailLower === "admin@eduolympia.com" || emailLower === "systemadmin") {
+          dummyRole = "super_admin";
+        } else if (emailLower.includes("schooladmin") || emailLower.includes("school-admin") || emailLower.includes("school_admin") || emailLower.includes("school")) {
+          dummyRole = "school_admin";
+        } else if (emailLower.includes("trainer") || emailLower.includes("teacher")) {
+          dummyRole = "trainer";
+        }
+
+        routeUser(dummyRole);
+        return;
       }
+
+      routeUser(user.role);
+
+    } catch (err) {
+      console.error(err);
+      setIsError(true);
+      setIsLoading(false);
+    }
+  };
+  
+  const routeUser = (role: string) => {
+    setSuccessToast(true);
+    let route = '/dashboard/student';
+    let roleText = 'Student Dashboard';
+    
+    if (role === 'super_admin') {
+      route = '/dashboard/super-admin';
+      roleText = 'Super Admin Dashboard';
+    } else if (role === 'school_admin') {
+      route = '/dashboard/school-admin';
+      roleText = 'School Admin Dashboard';
+    } else if (role === 'trainer') {
+      route = '/dashboard/trainer';
+      roleText = 'Trainer Dashboard';
+    }
+    
+    setRedirectingTo(roleText);
+    
+    setTimeout(() => {
+      router.push(route);
     }, 1500);
   };
   
@@ -107,7 +152,7 @@ function LoginContent() {
           </div>
           <div>
             <p className="font-bold text-white">Welcome back!</p>
-            <p className="text-sm text-slate-400 font-medium">Redirecting to your dashboard...</p>
+            <p className="text-sm text-slate-400 font-medium">Redirecting to {redirectingTo}...</p>
           </div>
         </div>
       )}
@@ -128,8 +173,8 @@ function LoginContent() {
           </div>
           
           <h1 className="text-5xl xl:text-6xl font-extrabold text-white tracking-tight mb-6 leading-[1.1]">
-            Your Olympiad <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300">Journey Starts Here</span>
+            EduOlympia <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300">Platform Portal</span>
           </h1>
           
           <p className="text-lg xl:text-xl text-slate-400 font-medium mb-12 leading-relaxed max-w-md">
@@ -145,7 +190,7 @@ function LoginContent() {
                  <span className="text-[10px] font-bold text-white">+</span>
               </div>
             </div>
-            <p className="text-sm text-slate-300 font-medium">Join <span className="text-white font-bold">10,000+</span> top students</p>
+            <p className="text-sm text-slate-300 font-medium">Join <span className="text-white font-bold">10,000+</span> users</p>
           </div>
         </div>
       </div>
@@ -163,7 +208,7 @@ function LoginContent() {
               <Sparkles className="w-7 h-7 text-white" />
             </div>
             <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">EduOlympia</h2>
-            <p className="text-sm text-slate-500 mt-2 font-medium">Your Olympiad Journey Starts Here</p>
+            <p className="text-sm text-slate-500 mt-2 font-medium">Platform Portal</p>
           </div>
 
           <div className="mb-10">
@@ -179,7 +224,7 @@ function LoginContent() {
               </div>
               <div>
                 <h4 className="text-sm font-bold text-amber-900 mb-0.5">First time here?</h4>
-                <p className="text-sm text-amber-700 font-medium leading-snug">Check your school email for your account setup link.</p>
+                <p className="text-sm text-amber-700 font-medium leading-snug">Check your email for your account setup link.</p>
               </div>
             </div>
           )}
@@ -293,7 +338,7 @@ function LoginContent() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onBlur={handleEmailBlur}
-                    placeholder="student@school.edu"
+                    placeholder="Enter your email"
                     className={`w-full pl-12 pr-4 py-3.5 bg-slate-50/50 border ${emailError ? 'border-red-400 focus:ring-red-500/10' : 'border-slate-200 hover:border-slate-300 focus:border-blue-500 focus:ring-blue-500/10'} rounded-2xl focus:bg-white focus:ring-4 outline-none transition-all text-sm font-medium text-slate-900 shadow-sm`}
                     disabled={isLoading}
                   />
@@ -390,7 +435,7 @@ function LoginContent() {
               ) : (
                 <form onSubmit={handleForgotSubmit}>
                   <p className="text-sm text-slate-500 font-medium mb-6">
-                    Enter your school email address below. We'll send you a secure link to create a new password.
+                    Enter your email address below. We'll send you a secure link to create a new password.
                   </p>
                   <div className="mb-8">
                     <label className="block text-sm font-bold text-slate-700 mb-2">Email Address</label>
@@ -398,7 +443,7 @@ function LoginContent() {
                       type="email" 
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
-                      placeholder="student@school.edu"
+                      placeholder="Enter your email"
                       required
                       className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white outline-none transition-all text-sm font-medium"
                       disabled={isLoading}
@@ -438,4 +483,3 @@ export default function LoginPage() {
     </Suspense>
   );
 }
-
