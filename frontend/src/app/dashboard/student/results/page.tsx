@@ -30,7 +30,7 @@ export default function ResultsPage() {
         let totalScore = 0;
         let totalQuestionsAll = 0;
         
-        data.forEach(r => {
+        data.forEach((r: any) => {
           totalScore += r.score;
           totalQuestionsAll += r.total_questions;
         });
