@@ -55,7 +55,7 @@ export default function ActivePracticeTestPage() {
       if (qData) {
         // Pick random questions to match total_questions (or just take what we have)
         const shuffled = qData.sort(() => 0.5 - Math.random());
-        const selected = shuffled.slice(0, paperData?.total_questions || 5).map(q => ({
+        const selected = shuffled.slice(0, paperData?.total_questions || 5).map((q: any) => ({
           ...q,
           options: [
             "Option A: " + Math.floor(Math.random() * 100),

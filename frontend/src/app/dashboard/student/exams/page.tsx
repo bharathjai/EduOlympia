@@ -20,7 +20,7 @@ export default function ExamsPage() {
       const { data: resultsData } = await supabase.from('student_test_results').select('paper_title').eq('student_name', 'Aarav Sharma');
 
       if (!examsError && examsData) {
-        setExams(examsData.map(exam => ({
+        setExams(examsData.map((exam: any) => ({
           id: exam.id,
           title: exam.title,
           subject: exam.subject,
@@ -34,7 +34,7 @@ export default function ExamsPage() {
       }
 
       if (resultsData) {
-        const titles = new Set(resultsData.map(r => r.paper_title));
+        const titles = new Set<string>(resultsData.map((r: any) => r.paper_title as string));
         setCompletedTitles(titles);
       }
       

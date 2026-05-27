@@ -123,55 +123,55 @@ export default function DashboardLayout({ children, role, userName, userDescript
           bgActive: "bg-[#B45309]",
           textActive: "text-white",
           textHover: "hover:text-[#B45309]",
-          bgHoverLight: "hover:bg-amber-50",
-          shadowActive: "shadow-md shadow-amber-600/20",
-          textBrand: "text-[#B45309]",
+          bgHoverLight: "hover:bg-amber-50/60",
+          shadowActive: "shadow-lg shadow-amber-600/10 hover:shadow-xl hover:shadow-amber-600/20",
+          textBrand: "text-amber-700",
           bgBrand: "bg-[#B45309]",
-          bgBrandLight: "bg-amber-50"
+          bgBrandLight: "bg-amber-50/70 border border-amber-100/50"
         };
       case "school_admin":
         return {
           bgActive: "bg-[#1D6A4A]",
           textActive: "text-white",
           textHover: "hover:text-[#1D6A4A]",
-          bgHoverLight: "hover:bg-green-50",
-          shadowActive: "shadow-md shadow-green-700/20",
-          textBrand: "text-[#1D6A4A]",
+          bgHoverLight: "hover:bg-green-50/60",
+          shadowActive: "shadow-lg shadow-emerald-600/10 hover:shadow-xl hover:shadow-emerald-600/20",
+          textBrand: "text-emerald-700",
           bgBrand: "bg-[#1D6A4A]",
-          bgBrandLight: "bg-green-50"
+          bgBrandLight: "bg-green-50/70 border border-green-100/50"
         };
       case "trainer":
         return {
           bgActive: "bg-[#5C3D99]",
           textActive: "text-white",
           textHover: "hover:text-[#5C3D99]",
-          bgHoverLight: "hover:bg-purple-50",
-          shadowActive: "shadow-md shadow-purple-900/20",
-          textBrand: "text-[#5C3D99]",
+          bgHoverLight: "hover:bg-purple-50/60",
+          shadowActive: "shadow-lg shadow-indigo-600/10 hover:shadow-xl hover:shadow-indigo-600/20",
+          textBrand: "text-indigo-700",
           bgBrand: "bg-[#5C3D99]",
-          bgBrandLight: "bg-purple-50"
+          bgBrandLight: "bg-purple-50/70 border border-purple-100/50"
         };
       case "student":
         return {
           bgActive: "bg-[#0D7377]",
           textActive: "text-white",
           textHover: "hover:text-[#0D7377]",
-          bgHoverLight: "hover:bg-teal-50",
-          shadowActive: "shadow-md shadow-teal-700/20",
+          bgHoverLight: "hover:bg-teal-50/60",
+          shadowActive: "shadow-lg shadow-teal-500/10 hover:shadow-xl hover:shadow-teal-500/20",
           textBrand: "text-[#0D7377]",
           bgBrand: "bg-[#0D7377]",
-          bgBrandLight: "bg-teal-50"
+          bgBrandLight: "bg-teal-50/70 border border-teal-100/50"
         };
       default:
         return {
           bgActive: "bg-[#B45309]",
           textActive: "text-white",
           textHover: "hover:text-[#B45309]",
-          bgHoverLight: "hover:bg-amber-50",
-          shadowActive: "shadow-md shadow-amber-600/20",
-          textBrand: "text-[#B45309]",
+          bgHoverLight: "hover:bg-amber-50/60",
+          shadowActive: "shadow-lg shadow-amber-600/10 hover:shadow-xl hover:shadow-amber-600/20",
+          textBrand: "text-amber-700",
           bgBrand: "bg-[#B45309]",
-          bgBrandLight: "bg-amber-50"
+          bgBrandLight: "bg-amber-50/70 border border-amber-100/50"
         };
     }
   };
@@ -220,13 +220,13 @@ export default function DashboardLayout({ children, role, userName, userDescript
 
           {/* Profile Badge */}
           <div className="px-6 pb-4 md:hidden xl:block">
-            <div className="bg-gray-50 border border-gray-100 p-3 rounded-xl flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-full ${role === 'super_admin' ? 'bg-gradient-to-tr from-amber-600 to-amber-400' : role === 'school_admin' ? 'bg-gradient-to-tr from-green-700 to-green-500' : role === 'trainer' ? 'bg-gradient-to-tr from-purple-800 to-purple-500' : 'bg-gradient-to-tr from-teal-700 to-teal-500'} flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm`}>
+            <div className="bg-slate-50/80 border border-slate-200/50 p-3 rounded-2xl flex items-center gap-3 transition-all duration-300 hover:bg-slate-100/50 hover:shadow-sm">
+              <div className={`w-8.5 h-8.5 rounded-full ${role === 'super_admin' ? 'bg-amber-600 ring-amber-500/20' : role === 'school_admin' ? 'bg-emerald-600 ring-emerald-500/20' : role === 'trainer' ? 'bg-purple-600 ring-indigo-500/20' : 'bg-[#0D7377] ring-teal-500/20'} flex items-center justify-center text-white font-extrabold text-sm shrink-0 shadow-sm ring-2 ring-offset-1`}>
                 {userName.charAt(0)}
               </div>
               <div className="overflow-hidden">
-                <p className="text-sm font-bold text-gray-900 truncate">{userName}</p>
-                <p className="text-[10px] text-gray-500 font-bold truncate uppercase tracking-wider">{role.replace('_', ' ')}</p>
+                <p className="text-sm font-bold text-gray-900 truncate leading-none mb-0.5">{userName}</p>
+                <p className="text-[10px] text-gray-500 font-bold truncate uppercase tracking-wider leading-none">{role.replace('_', ' ')}</p>
               </div>
             </div>
           </div>
@@ -238,15 +238,18 @@ export default function DashboardLayout({ children, role, userName, userDescript
               <Link
                 key={item.name}
                 href={item.href}
-                className={`relative flex items-center gap-3 px-3 xl:px-4 py-3 rounded-xl transition-colors justify-center xl:justify-start ${
+                className={`relative flex items-center gap-3 px-3 xl:px-4 py-3.5 rounded-xl transition-all duration-300 justify-center xl:justify-start ${
                   isActive
-                    ? `${accent.bgActive} ${accent.textActive} ${accent.shadowActive}`
-                    : `text-gray-600 hover:bg-gray-50 ${accent.textHover}`
+                    ? `${accent.bgActive} ${accent.textActive} ${accent.shadowActive} scale-[1.02]`
+                    : `text-slate-600 hover:bg-slate-50 ${accent.textHover} hover:translate-x-1`
                 }`}
                 title={item.name} // helpful tooltip on tablet
               >
+                {isActive && (
+                  <span className="absolute left-0 top-3 bottom-3 w-1 bg-white rounded-r-md hidden xl:block animate-in fade-in duration-300"></span>
+                )}
                 <item.icon className="w-5 h-5 shrink-0" />
-                <span className="font-medium flex-1 md:hidden xl:block truncate">{item.name}</span>
+                <span className="font-semibold text-sm flex-1 md:hidden xl:block truncate">{item.name}</span>
                 {item.badgeCount !== undefined && item.badgeCount > 0 && (
                   <>
                     <span className="md:hidden xl:inline-block bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm ml-auto">
@@ -329,56 +332,59 @@ export default function DashboardLayout({ children, role, userName, userDescript
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden w-full relative">
         {/* Header */}
-        <header className="h-16 md:h-20 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 xl:px-8 shrink-0">
+        <header className="h-16 md:h-20 bg-white border-b border-slate-100 flex items-center justify-between px-4 md:px-6 xl:px-8 shrink-0">
           <div className="flex items-center gap-3 w-full">
             <button 
-              className={`md:hidden p-2 -ml-2 text-gray-600 ${accent.textHover} transition-colors rounded-lg hover:bg-gray-50`}
+              className={`md:hidden p-2 -ml-2 text-gray-600 ${accent.textHover} transition-colors rounded-lg hover:bg-slate-50`}
               onClick={() => setIsMobileMenuOpen(true)}
             >
               <Menu className="w-5 h-5" />
             </button>
             <div className="relative w-full max-w-md hidden sm:block">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search className="w-4.5 h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 
                 type="text" 
-                placeholder="Search..." 
-                className={`w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:ring-2 focus:ring-opacity-20 focus:border-opacity-50`}
-                style={{ 
-                  '--tw-ring-color': role === 'super_admin' ? '#B45309' : role === 'school_admin' ? '#1D6A4A' : role === 'trainer' ? '#5C3D99' : '#0D7377',
-                  '--tw-border-color': role === 'super_admin' ? '#B45309' : role === 'school_admin' ? '#1D6A4A' : role === 'trainer' ? '#5C3D99' : '#0D7377',
-                } as React.CSSProperties}
+                placeholder="Search resources, exams or activities..." 
+                className={`w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-sm text-slate-900 placeholder-slate-400 font-semibold focus:outline-none focus:bg-white focus:ring-4 transition-all duration-300 ${
+                  role === 'super_admin' ? 'focus:border-amber-500 focus:ring-amber-500/10' :
+                  role === 'school_admin' ? 'focus:border-emerald-500 focus:ring-emerald-500/10' :
+                  role === 'trainer' ? 'focus:border-purple-500 focus:ring-purple-500/10' :
+                  'focus:border-[#0D7377] focus:ring-[#0D7377]/10'
+                }`}
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <button className={`relative p-2 text-gray-400 ${accent.textHover} transition-colors`}>
+          <div className="flex items-center gap-4">
+            <button className={`relative p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl transition-all duration-200 border border-slate-200/40 hover:scale-105 active:scale-95`}>
               <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
             </button>
             
+            <div className="h-8 w-px bg-slate-200/60 hidden sm:block"></div>
+
             <div 
-              className="relative flex items-center gap-2 sm:gap-3 pl-4 sm:pl-6 border-l border-gray-200 cursor-pointer"
+              className="relative flex items-center gap-2 sm:gap-3 p-1.5 pr-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/50 cursor-pointer select-none transition-all duration-300"
               onClick={() => setIsProfileOpen(!isProfileOpen)}
             >
-              <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full ${role === 'super_admin' ? 'bg-gradient-to-tr from-amber-600 to-amber-400' : role === 'school_admin' ? 'bg-gradient-to-tr from-green-700 to-green-500' : role === 'trainer' ? 'bg-gradient-to-tr from-purple-800 to-purple-500' : 'bg-gradient-to-tr from-teal-700 to-teal-500'} flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0`}>
+              <div className={`w-8.5 h-8.5 sm:w-9.5 sm:h-9.5 rounded-full ${role === 'super_admin' ? 'bg-amber-600 ring-amber-500/20' : role === 'school_admin' ? 'bg-emerald-600 ring-emerald-500/20' : role === 'trainer' ? 'bg-purple-600 ring-indigo-500/20' : 'bg-[#0D7377] ring-teal-500/20'} flex items-center justify-center text-white font-extrabold text-sm shadow-md ring-2 ring-offset-1 shrink-0`}>
                 {userName.charAt(0)}
               </div>
               <div className="hidden lg:block text-left whitespace-nowrap">
-                <p className="text-sm font-semibold text-gray-900">{userName}</p>
-                <p className="text-xs text-gray-500">{userDescription}</p>
+                <p className="text-sm font-bold text-slate-900 leading-none mb-0.5">{userName}</p>
+                <p className="text-xs text-slate-500 leading-none">{userDescription}</p>
               </div>
-              <ChevronDown className={`w-4 h-4 text-gray-400 ml-1 shrink-0 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} />
               
               {isProfileOpen && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-sm font-semibold text-gray-900">{userName}</p>
-                    <p className="text-xs text-gray-500 capitalize">{role.replace('_', ' ')}</p>
+                <div className="absolute top-full right-0 mt-3 w-52 bg-white border border-slate-150 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-2.5 border-b border-slate-100">
+                    <p className="text-sm font-bold text-slate-900 truncate">{userName}</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">{role.replace('_', ' ')}</p>
                   </div>
                   <Link 
                     href={role === 'super_admin' ? '/dashboard/super-admin/settings' : role === 'school_admin' ? '/dashboard/school-admin/settings' : `/dashboard/${role}/profile`} 
-                    className={`flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 ${accent.textHover}`}
+                    className={`flex items-center px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-semibold ${accent.textHover}`}
                   >
                     Profile Settings
                   </Link>
@@ -387,7 +393,7 @@ export default function DashboardLayout({ children, role, userName, userDescript
                       e.stopPropagation();
                       window.location.href = '/login';
                     }}
-                    className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium"
+                    className="w-full text-left flex items-center px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/70 font-bold transition-colors"
                   >
                     Logout
                   </button>
