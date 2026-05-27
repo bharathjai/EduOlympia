@@ -35,7 +35,7 @@ export default function TrainerPracticePage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'practice_papers' },
-        (payload) => {
+        (payload: any) => {
           fetchPapers();
         }
       )
