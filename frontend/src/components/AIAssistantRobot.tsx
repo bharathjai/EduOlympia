@@ -112,7 +112,7 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
       // Resting position: bottom-right corner
       const margin = mobile ? 12 : 20;
       const startX = w - halfRobot - margin;
-      const startY = h - robotSize - margin;
+      const startY = h - halfRobot - margin;
 
       // Positioning, Scale, and Rotations logic for orbital flight path
       let targetX = startX;
