@@ -51,7 +51,7 @@ export default function ExamApproval() {
       });
       setExams(formatted);
       if (formatted.length > 0 && selectedExamId === null) {
-        setSelectedExamId(formatted.find(f => f.status === 'Pending')?.id || formatted[0].id);
+        setSelectedExamId(formatted.find((f: any) => f.status === 'Pending')?.id || formatted[0].id);
       }
     }
     setLoading(false);
