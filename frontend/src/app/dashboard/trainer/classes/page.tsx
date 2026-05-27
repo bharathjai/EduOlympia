@@ -130,14 +130,61 @@ export default function LiveClassManagerPage() {
   // Form State
   const [formData, setFormData] = useState({ title: '', subject: 'Mathematics', chapter: '', date: '', time: '', duration: '60', description: '' });
 
-  const handleSimulateSubmit = (e: React.FormEvent) => {
+  const handleSimulateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    
+    // Parse human-friendly date representation (e.g. 2026-05-27 -> Today or May 27)
+    let displayDate = formData.date;
+    try {
+      const d = new Date(formData.date);
+      const today = new Date();
+      const tomorrow = new Date();
+      tomorrow.setDate(today.getDate() + 1);
+      
+      if (d.toDateString() === today.toDateString()) {
+        displayDate = "Today";
+      } else if (d.toDateString() === tomorrow.toDateString()) {
+        displayDate = "Tomorrow";
+      } else {
+        displayDate = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+      }
+    } catch (err) {}
+
+    // Format time representation (e.g. 14:30 -> 02:30 PM)
+    let displayTime = formData.time;
+    try {
+      const [h, m] = formData.time.split(':');
+      const hour = parseInt(h);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const formattedHour = hour % 12 || 12;
+      displayTime = `${String(formattedHour).padStart(2, '0')}:${m} ${ampm}`;
+    } catch (err) {}
+
+    const newClass = {
+      title: formData.title,
+      subject: formData.subject,
+      class_grade: "Class 8", // default class grade
+      date: displayDate,
+      time: displayTime,
+      status: "upcoming",
+      students_registered: 0
+    };
+
+    const { data, error } = await supabase.from('live_classes').insert([newClass]).select();
+    
+    setIsSubmitting(false);
+    if (!error) {
       setActiveModal(null);
-      alert("Class scheduled and students notified!");
-    }, 1500);
+      // Reset form
+      setFormData({ title: '', subject: 'Mathematics', chapter: '', date: '', time: '', duration: '60', description: '' });
+      alert("Class scheduled successfully!");
+      // Refresh list
+      window.location.reload();
+    } else {
+      console.error(error);
+      alert("Failed to schedule class: " + error.message);
+    }
   };
 
   const handleCancelSession = () => {
@@ -317,17 +364,17 @@ export default function LiveClassManagerPage() {
                  <div className="grid grid-cols-2 gap-4">
                    <div>
                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Subject</label>
-                     <select className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none font-bold text-gray-900" disabled={isSubmitting}>
-                       <option>Mathematics</option>
-                       <option>Science</option>
+                     <select className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none font-bold text-gray-900" disabled={isSubmitting} value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})}>
+                       <option value="Mathematics">Mathematics</option>
+                       <option value="Science">Science</option>
                      </select>
                    </div>
                    <div>
                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Chapter (Optional)</label>
-                     <select className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none font-bold text-gray-900" disabled={isSubmitting}>
+                     <select className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none font-bold text-gray-900" disabled={isSubmitting} value={formData.chapter} onChange={e => setFormData({...formData, chapter: e.target.value})}>
                        <option value="">Select Chapter</option>
-                       <option>Algebra</option>
-                       <option>Geometry</option>
+                       <option value="Algebra">Algebra</option>
+                       <option value="Geometry">Geometry</option>
                      </select>
                    </div>
                  </div>
@@ -335,21 +382,21 @@ export default function LiveClassManagerPage() {
                  <div className="grid grid-cols-3 gap-4">
                    <div>
                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Date</label>
-                     <input type="date" required className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none font-bold text-gray-900" disabled={isSubmitting} />
+                     <input type="date" required className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none font-bold text-gray-900" disabled={isSubmitting} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
                    </div>
                    <div>
                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Start Time</label>
-                     <input type="time" required className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none font-bold text-gray-900" disabled={isSubmitting} />
+                     <input type="time" required className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none font-bold text-gray-900" disabled={isSubmitting} value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
                    </div>
                    <div>
                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Duration (Mins)</label>
-                     <input type="number" required defaultValue="60" min="15" step="15" className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none font-bold text-gray-900" disabled={isSubmitting} />
+                     <input type="number" required defaultValue="60" min="15" step="15" className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none font-bold text-gray-900" disabled={isSubmitting} value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} />
                    </div>
                  </div>
 
                  <div>
                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Description</label>
-                   <textarea placeholder="What will be covered in this session?" className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none font-bold text-gray-900 min-h-[100px]" disabled={isSubmitting}></textarea>
+                   <textarea placeholder="What will be covered in this session?" className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none font-bold text-gray-900 min-h-[100px]" disabled={isSubmitting} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
                  </div>
 
                  <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-start gap-3">
