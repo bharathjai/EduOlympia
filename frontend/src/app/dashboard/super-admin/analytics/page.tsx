@@ -39,7 +39,7 @@ export default function PlatformAnalytics() {
     const { data: results } = await supabase.from('results').select('score');
     let avg = 0;
     if (results && results.length > 0) {
-      avg = results.reduce((acc, curr) => acc + Number(curr.score), 0) / results.length;
+      avg = results.reduce((acc: number, curr: any) => acc + Number(curr.score), 0) / results.length;
     }
 
     setStats({
