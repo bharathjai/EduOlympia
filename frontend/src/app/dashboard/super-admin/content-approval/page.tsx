@@ -50,7 +50,7 @@ export default function ContentApproval() {
       });
       setContents(formatted);
       if (formatted.length > 0 && selectedContentId === null) {
-        handleRowClick(formatted.find(f => f.status === 'Pending')?.id || formatted[0].id);
+        handleRowClick(formatted.find((f: any) => f.status === 'Pending')?.id || formatted[0].id);
       }
     }
     setLoading(false);
