@@ -31,46 +31,92 @@ export default function LiveClassManagerPage() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
   const [upcomingClasses, setUpcomingClasses] = useState<any[]>([]);
   const [pastClasses, setPastClasses] = useState<any[]>([]);
+  const [liveClassIds, setLiveClassIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const updateLiveClasses = () => {
+      try {
+        const active = JSON.parse(localStorage.getItem('eduolympia_live_classes') || '{}');
+        setLiveClassIds(Object.keys(active));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    updateLiveClasses();
+    window.addEventListener('storage', updateLiveClasses);
+    return () => {
+      window.removeEventListener('storage', updateLiveClasses);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchClasses = async () => {
-      const { data, error } = await supabase.from('live_classes').select('*').order('scheduled_at', { ascending: true });
-      if (data) {
-        const now = new Date();
-        const upcoming: any[] = [];
-        const past: any[] = [];
-        
+      const { data, error } = await supabase.from('live_classes').select('*').order('id', { ascending: true });
+      const upcoming: any[] = [];
+      const past: any[] = [];
+
+      if (data && data.length > 0) {
         data.forEach((cls: any) => {
-          const date = new Date(cls.scheduled_at);
-          const formattedDate = date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-          const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+          if (cls.status === 'live') {
+            setLiveClassIds(prev => Array.from(new Set([...prev, String(cls.id)])));
+          }
           
-          if (cls.status === 'completed' || date < now) {
+          if (cls.status === 'completed') {
             past.push({
               id: cls.id.toString(),
               title: cls.title,
               subject: cls.subject || 'General',
-              date: formattedDate,
+              date: cls.date || 'Today',
               attended: Math.floor(Math.random() * 20) + 20, // Mock attendance for now
               total: 50,
-              processing: !cls.recording_url
+              processing: false
             });
           } else {
             upcoming.push({
               id: cls.id.toString(),
               title: cls.title,
               subject: cls.subject || 'General',
-              date: formattedDate,
-              time: time,
-              studentsRegistered: Math.floor(Math.random() * 20) + 30, // Mock registered
-              isLaunchable: date.getTime() - now.getTime() < 15 * 60 * 1000 // 15 mins before
+              date: cls.date || 'Today',
+              time: cls.time || '10:00 AM',
+              studentsRegistered: cls.students_registered || 25,
+              isLaunchable: true
             });
           }
         });
+      } else {
+        // Fallback Mock Data so Trainer can launch sessions
+        upcoming.push({
+          id: "201",
+          title: "Advanced Algebra",
+          subject: "Mathematics",
+          date: "Today",
+          time: new Date(Date.now() + 2 * 60 * 60 * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          studentsRegistered: 125,
+          isLaunchable: true
+        });
+        upcoming.push({
+          id: "202",
+          title: "Newtonian Mechanics",
+          subject: "Physics",
+          date: "Tomorrow",
+          time: "10:30",
+          studentsRegistered: 84,
+          isLaunchable: true
+        });
         
-        setUpcomingClasses(upcoming);
-        setPastClasses(past.reverse());
+        past.push({
+          id: "199",
+          title: "Geometry Basics",
+          subject: "Mathematics",
+          date: "May 24",
+          attended: 42,
+          total: 50,
+          processing: false
+        });
       }
+      
+      setUpcomingClasses(upcoming);
+      setPastClasses(past.reverse());
     };
     fetchClasses();
   }, []);
@@ -154,10 +200,16 @@ export default function LiveClassManagerPage() {
                 </div>
               ) : (
                 upcomingClasses.map(cls => (
-                  <div key={cls.id} className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm flex flex-col hover:border-indigo-300 transition-all">
+                  <div key={cls.id} className={`bg-white rounded-3xl p-6 border shadow-sm flex flex-col hover:border-indigo-300 transition-all ${liveClassIds.includes(String(cls.id)) ? 'border-red-400 ring-2 ring-red-400/20' : 'border-gray-200'}`}>
                     <div className="flex justify-between items-start mb-4">
-                      <span className="px-3 py-1 bg-indigo-50 text-indigo-700 font-bold text-xs uppercase tracking-widest rounded-lg flex items-center gap-1.5">
+                      <span className={`px-3 py-1 font-bold text-xs uppercase tracking-widest rounded-lg flex items-center gap-1.5 ${liveClassIds.includes(String(cls.id)) ? 'bg-red-50 text-red-700' : 'bg-indigo-50 text-indigo-700'}`}>
                         <Clock className="w-3.5 h-3.5" /> {cls.date} at {cls.time}
+                        {liveClassIds.includes(String(cls.id)) && (
+                          <span className="bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider flex items-center gap-1 animate-pulse ml-2">
+                            <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+                            Live Now
+                          </span>
+                        )}
                       </span>
                       <div className="flex gap-1">
                         <button className="p-2 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"><Edit3 className="w-4 h-4"/></button>
@@ -178,13 +230,20 @@ export default function LiveClassManagerPage() {
 
                     <div className="mt-auto pt-4 border-t border-gray-100">
                       <button 
-                        onClick={() => setActiveModal("launch")}
-                        disabled={!cls.isLaunchable}
-                        className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${cls.isLaunchable ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                        onClick={() => window.open(`/dashboard/trainer/live-class/${cls.id}`, '_self')}
+                        disabled={!cls.isLaunchable && !liveClassIds.includes(String(cls.id))}
+                        className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                          liveClassIds.includes(String(cls.id))
+                            ? 'bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-600/20'
+                            : cls.isLaunchable
+                              ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20'
+                              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        }`}
                       >
-                        <VideoIcon className="w-5 h-5" /> Launch Class
+                        <VideoIcon className="w-5 h-5" /> 
+                        {liveClassIds.includes(String(cls.id)) ? 'Resume Class' : 'Launch Class'}
                       </button>
-                      {!cls.isLaunchable && <p className="text-center text-xs font-semibold text-orange-500 mt-3">Launch button activates 15 mins before start time.</p>}
+                      {!cls.isLaunchable && !liveClassIds.includes(String(cls.id)) && <p className="text-center text-xs font-semibold text-orange-500 mt-3">Launch button activates 15 mins before start time.</p>}
                     </div>
                   </div>
                 ))

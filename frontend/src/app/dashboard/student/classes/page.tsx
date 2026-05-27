@@ -9,24 +9,78 @@ import { supabase } from "@/utils/supabase";
 export default function LiveClassesPage() {
   const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [liveClassIds, setLiveClassIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const updateLiveClasses = () => {
+      try {
+        const active = JSON.parse(localStorage.getItem('eduolympia_live_classes') || '{}');
+        setLiveClassIds(Object.keys(active));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    updateLiveClasses();
+    window.addEventListener('storage', updateLiveClasses);
+    return () => {
+      window.removeEventListener('storage', updateLiveClasses);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchClasses = async () => {
-      const { data, error } = await supabase.from('live_classes').select('*').order('scheduled_at', { ascending: true });
-      if (!error && data) {
-        const now = new Date();
+      const { data, error } = await supabase.from('live_classes').select('*').order('id', { ascending: true });
+      if (!error && data && data.length > 0) {
         const formatted = data.map((cls: any) => {
-          const date = new Date(cls.scheduled_at);
+          if (cls.status === 'live') {
+            setLiveClassIds(prev => Array.from(new Set([...prev, String(cls.id)])));
+          }
           return {
             id: cls.id,
             title: cls.title,
             subject: cls.subject || 'General',
-            date: date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
-            time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-            status: cls.status === 'completed' || date < now ? 'completed' : 'upcoming'
+            date: cls.date || 'Today',
+            time: cls.time || '10:00 AM',
+            status: cls.status === 'completed' ? 'completed' : 'upcoming'
           };
         });
         setClasses(formatted);
+      } else {
+        // Fallback Mock Data so user can test the live classes room
+        setClasses([
+          {
+            id: 201,
+            title: "Advanced Algebra",
+            subject: "Mathematics • Rahul Singh",
+            date: "Today",
+            time: new Date(Date.now() + 2 * 60 * 60 * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            status: "upcoming"
+          },
+          {
+            id: 202,
+            title: "Newtonian Mechanics",
+            subject: "Physics • Dr. Amit Verma",
+            date: "Tomorrow",
+            time: "10:30",
+            status: "upcoming"
+          },
+          {
+            id: 203,
+            title: "Chemical Bonding",
+            subject: "Chemistry • Mrs. Sen",
+            date: "May 29",
+            time: "14:00",
+            status: "upcoming"
+          },
+          {
+            id: 204,
+            title: "Cell Division & Genetics",
+            subject: "Biology • Dr. Bose",
+            date: "May 25",
+            time: "11:00",
+            status: "completed"
+          }
+        ]);
       }
       setLoading(false);
     };

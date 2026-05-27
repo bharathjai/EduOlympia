@@ -26,6 +26,52 @@ export default function StudentDashboard() {
     attendance: 94
   });
 
+  const [liveClassIds, setLiveClassIds] = useState<string[]>([]);
+  const [liveClass, setLiveClass] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchLiveClass = async () => {
+      const { data, error } = await supabase.from('live_classes').select('*').order('id', { ascending: true }).limit(1);
+      if (!error && data && data.length > 0) {
+        const cls = data[0];
+        setLiveClass({
+          trainerName: "Rahul Singh",
+          subject: cls.title,
+          time: cls.time || "10:00 AM",
+          id: cls.id
+        });
+        if (cls.status === 'live') {
+          setLiveClassIds(prev => Array.from(new Set([...prev, String(cls.id)])));
+        }
+      } else {
+        // Fallback Mock Live Class
+        setLiveClass({
+          trainerName: "Mr. Sharma",
+          subject: "Advanced Algebra",
+          time: new Date(Date.now() + 2 * 60 * 60 * 1000),
+          id: 201
+        });
+      }
+    };
+    fetchLiveClass();
+  }, []);
+
+  useEffect(() => {
+    const updateLiveClasses = () => {
+      try {
+        const active = JSON.parse(localStorage.getItem('eduolympia_live_classes') || '{}');
+        setLiveClassIds(Object.keys(active));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    updateLiveClasses();
+    window.addEventListener('storage', updateLiveClasses);
+    return () => {
+      window.removeEventListener('storage', updateLiveClasses);
+    };
+  }, []);
+
   useEffect(() => {
     setMounted(true);
     let isMounted = true;
@@ -74,12 +120,7 @@ export default function StudentDashboard() {
     id: 101
   };
 
-  const liveClass = isFirstLogin ? null : {
-    trainerName: "Mr. Sharma",
-    subject: "Advanced Algebra",
-    time: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
-    id: 201
-  };
+
 
   const pendingPractice = isFirstLogin ? [] : [
     { id: 301, title: "Math Mock Test 4", subject: "Mathematics" },
@@ -109,8 +150,9 @@ export default function StudentDashboard() {
     return `${hours} Hours to go`;
   };
 
-  // Helper to check if class is joinable (< 10 mins)
-  const isClassJoinable = (date: Date) => {
+  // Helper to check if class is joinable (< 10 mins OR active)
+  const isClassJoinable = (id: string | number, date: Date) => {
+    if (liveClassIds.includes(String(id))) return true;
     const diffMins = (date.getTime() - Date.now()) / (1000 * 60);
     return diffMins <= 10 && diffMins > -60; // Assuming class lasts an hour
   };
@@ -373,14 +415,23 @@ export default function StudentDashboard() {
                <section>
                   <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2.5"><Video className="w-5.5 h-5.5 text-[#0D7377]"/> Next Live Class</h2>
                   {liveClass ? (
-                    <div className="bg-slate-900 rounded-[32px] p-6 sm:p-8 text-white shadow-xl relative overflow-hidden group border border-slate-800/80 transition-all duration-300">
+                    <div className={`bg-slate-900 rounded-[32px] p-6 sm:p-8 text-white shadow-xl relative overflow-hidden group border transition-all duration-300 ${liveClassIds.includes(String(liveClass.id)) ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-800/80'}`}>
                        <div className="relative z-10">
                           <div className="bg-white/10 w-fit backdrop-blur-md px-3.5 py-1.5 rounded-xl text-[10px] font-extrabold tracking-wider uppercase mb-6 flex items-center gap-2 border border-white/15">
-                            <span className="relative flex h-2 w-2 shrink-0">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                            </span>
-                            Live Session
+                            {liveClassIds.includes(String(liveClass.id)) ? (
+                              <>
+                                <span className="relative flex h-2 w-2 shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                                Live Now
+                              </>
+                            ) : (
+                              <>
+                                <span className="relative flex h-2 w-2 rounded-full bg-slate-500"></span>
+                                Upcoming Class
+                              </>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-4 mb-7">
@@ -399,7 +450,7 @@ export default function StudentDashboard() {
                                 <div>
                                    <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-0.5">Scheduled For</p>
                                    <p className="font-bold text-base text-white tracking-tight" suppressHydrationWarning>
-                                      {liveClass.time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                      {typeof liveClass.time === 'string' ? liveClass.time : liveClass.time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                    </p>
                                  </div>
                              </div>
@@ -407,18 +458,20 @@ export default function StudentDashboard() {
 
                           <button 
                             className={`w-full py-4 rounded-2xl font-bold text-sm flex justify-center items-center gap-2 transition-all duration-300 shadow-xl ${
-                              (mounted && isClassJoinable(liveClass.time))
+                              (mounted && isClassJoinable(liveClass.id, liveClass.time))
                                 ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-purple-500/10 hover:scale-[1.02] hover:-translate-y-0.5' 
                                 : 'bg-white/5 text-slate-400 cursor-not-allowed border border-white/5 hover:bg-white/10'
                             }`}
-                            disabled={!mounted || !isClassJoinable(liveClass.time)}
+                            disabled={!mounted || !isClassJoinable(liveClass.id, liveClass.time)}
                             onClick={() => window.open(`/dashboard/student/live-class/${liveClass.id}`, '_blank')}
                           >
                             {mounted ? (
-                              isClassJoinable(liveClass.time) ? (
-                                <><Play className="w-4 h-4 fill-current" /> Join Class Now</>
+                              isClassJoinable(liveClass.id, liveClass.time) ? (
+                                <><Play className="w-4 h-4 fill-current animate-bounce" /> Join Class Now</>
                               ) : (
-                                'Join active ' + Math.ceil(Math.abs((liveClass.time.getTime() - Date.now()) / (1000 * 60))) + ' mins prior'
+                                typeof liveClass.time === 'string'
+                                  ? 'Upcoming Class'
+                                  : 'Join active ' + Math.ceil(Math.abs((liveClass.time.getTime() - Date.now()) / (1000 * 60))) + ' mins prior'
                               )
                             ) : (
                               'Loading...'

@@ -12,14 +12,7 @@ import { supabase } from "@/utils/supabase";
 
 // --- MOCK DATA FOR CHARTS/LOGS ---
 
-const mockUpcomingClass = {
-  id: "lc-1",
-  subject: "Advanced Mathematics - Algebra",
-  date: "Today",
-  time: "14:30", // 2:30 PM
-  enrolled: 124,
-  isLaunchable: true // Simulating it's within 15 mins
-};
+
 
 const mockDoubts = [
   { id: "d1", student: "Arjun Sharma", question: "In Q14 of the Geometry mock test, why do we use the sine rule instead of cosine rule?", time: "2 hours ago" },
@@ -46,6 +39,39 @@ const mockActivityData = [
 export default function TrainerDashboard() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [liveClassIds, setLiveClassIds] = useState<string[]>([]);
+  const [upcomingClass, setUpcomingClass] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUpcomingClass = async () => {
+      const { data, error } = await supabase.from('live_classes').select('*').order('id', { ascending: true }).limit(1);
+      if (!error && data && data.length > 0) {
+        const cls = data[0];
+        setUpcomingClass({
+          id: cls.id,
+          subject: cls.title,
+          date: cls.date || "Today",
+          time: cls.time || "10:00 AM",
+          enrolled: cls.students_registered || 124,
+          isLaunchable: true
+        });
+        if (cls.status === 'live') {
+          setLiveClassIds(prev => Array.from(new Set([...prev, String(cls.id)])));
+        }
+      } else {
+        setUpcomingClass({
+          id: "201",
+          subject: "Advanced Algebra",
+          date: "Today",
+          time: "14:30",
+          enrolled: 124,
+          isLaunchable: true
+        });
+      }
+    };
+    fetchUpcomingClass();
+  }, []);
+
   const [stats, setStats] = useState({
     contentItems: 142,
     contentTrend: 12,
@@ -56,6 +82,22 @@ export default function TrainerDashboard() {
     pendingDoubts: 5,
     doubtsTrend: 2,
   });
+
+  useEffect(() => {
+    const updateLiveClasses = () => {
+      try {
+        const active = JSON.parse(localStorage.getItem('eduolympia_live_classes') || '{}');
+        setLiveClassIds(Object.keys(active));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    updateLiveClasses();
+    window.addEventListener('storage', updateLiveClasses);
+    return () => {
+      window.removeEventListener('storage', updateLiveClasses);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -225,30 +267,42 @@ export default function TrainerDashboard() {
                </div>
 
                <div className="relative z-10">
-                 <div className="flex items-center gap-3 mb-6">
-                   <span className="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                     Next Session
-                   </span>
-                 </div>
-                 
-                 {mockUpcomingClass ? (
-                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                     <div>
-                       <h3 className="text-2xl md:text-3xl font-black mb-2">{mockUpcomingClass.subject}</h3>
-                       <div className="flex flex-wrap items-center gap-4 text-slate-300 font-medium">
-                         <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg"><Clock className="w-4 h-4"/> {mockUpcomingClass.date} at {mockUpcomingClass.time}</span>
-                         <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg"><Users className="w-4 h-4"/> {mockUpcomingClass.enrolled} Enrolled</span>
-                       </div>
-                     </div>
-                     <button 
-                       disabled={!mockUpcomingClass.isLaunchable}
-                       className={`px-8 py-4 rounded-xl font-extrabold flex items-center gap-2 shrink-0 transition-all ${mockUpcomingClass.isLaunchable ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}`}
-                     >
-                       <PlayCircle className="w-5 h-5" />
-                       Launch Class
-                     </button>
-                   </div>
+                  <div className="flex items-center gap-3 mb-6">
+                    {liveClassIds.includes(String(upcomingClass?.id)) ? (
+                      <span className="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                        Live Now
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-gray-500/20 text-gray-400 border border-gray-500/30 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-gray-500"></span>
+                        Next Session
+                      </span>
+                    )}
+                  </div>
+                  
+                  {upcomingClass ? (
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                      <div>
+                        <h3 className="text-2xl md:text-3xl font-black mb-2">{upcomingClass.subject}</h3>
+                        <div className="flex flex-wrap items-center gap-4 text-slate-300 font-medium">
+                          <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg"><Clock className="w-4 h-4"/> {upcomingClass.date} at {upcomingClass.time}</span>
+                          <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg"><Users className="w-4 h-4"/> {upcomingClass.enrolled} Enrolled</span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => router.push(`/dashboard/trainer/live-class/${upcomingClass.id}`)}
+                        disabled={!upcomingClass.isLaunchable}
+                        className={`px-8 py-4 rounded-xl font-extrabold flex items-center gap-2 shrink-0 transition-all ${
+                          liveClassIds.includes(String(upcomingClass.id)) 
+                            ? 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30' 
+                            : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30'
+                        }`}
+                      >
+                        <PlayCircle className="w-5 h-5" />
+                        {liveClassIds.includes(String(upcomingClass.id)) ? 'Resume Class' : 'Launch Class'}
+                      </button>
+                    </div>
                  ) : (
                    <div className="text-center py-8">
                      <p className="text-slate-400 font-medium mb-4">No classes scheduled. Schedule a live class to engage your students.</p>
