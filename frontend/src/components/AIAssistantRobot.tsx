@@ -9,6 +9,7 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
   const [isFlying, setIsFlying] = useState(false);
   const [isWaving, setIsWaving] = useState(false);
   const [showSpeechBubble, setShowSpeechBubble] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // References for hardware-accelerated SVG elements
   const robotRef = useRef<HTMLDivElement>(null);
@@ -28,6 +29,21 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
   useEffect(() => {
     isFlyingRef.current = isFlying;
   }, [isFlying]);
+
+  const isMobileRef = useRef(isMobile);
+  useEffect(() => {
+    isMobileRef.current = isMobile;
+  }, [isMobile]);
+
+  // Detect and track screen size for mobile responsiveness
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Handle onboarding mount trigger automatically whenever the page is loaded
   useEffect(() => {
@@ -55,7 +71,7 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
     if (isFlying || isWaving) return;
     setIsWaving(true);
     setShowSpeechBubble(true);
-    
+
     // Wave greeting gesture for exactly 4 seconds in the bottom-right corner
     setTimeout(() => {
       setIsWaving(false);
@@ -87,9 +103,16 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
       // Handle window sizing dynamically inside loop
       const w = window.innerWidth || 1920;
       const h = window.innerHeight || 1080;
-      
-      const startX = w - 60;
-      const startY = h - 85;
+
+      // Scale robot size based on screen width
+      const mobile = w < 768;
+      const robotSize = mobile ? 80 : 120; // px
+      const halfRobot = robotSize / 2;
+
+      // Resting position: bottom-right corner
+      const margin = mobile ? 12 : 20;
+      const startX = w - halfRobot - margin;
+      const startY = h - robotSize - margin;
 
       // Positioning, Scale, and Rotations logic for orbital flight path
       let targetX = startX;
@@ -114,14 +137,16 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
         const flightDuration = 4.5; // 4.5 seconds circular flight trajectory
         const p = Math.min(1.0, flightTime / flightDuration);
 
+        // Orbit radius - smaller on mobile
+        const R = mobile ? 35 : 50;
+
         // Center of circular loop near bottom-right corner
-        const cX = startX - 70;
-        const cY = startY - 90;
-        const R = 50; // Radius of circular region
-        
+        const cX = startX - (mobile ? 50 : 70);
+        const cY = startY - (mobile ? 60 : 90);
+
         // Match start of circle at theta0
-        const dx = (startX - 30) - cX;
-        const dy = (startY - 60) - cY;
+        const dx = (startX - halfRobot * 0.5) - cX;
+        const dy = (startY - halfRobot) - cY;
         const theta0 = Math.atan2(dy, dx); // start angle
 
         if (p < 0.15) {
@@ -129,20 +154,20 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
           const ratio = p / 0.15;
           const targetCircleStartX = cX + R * Math.cos(theta0);
           const targetCircleStartY = cY + R * Math.sin(theta0);
-          
+
           targetX = startX + (targetCircleStartX - startX) * ratio;
           targetY = startY + (targetCircleStartY - startY) * ratio;
-          
+
           targetRotZ = -0.2 * Math.sin(ratio * Math.PI);
           targetScale = 1.0 - 0.05 * ratio;
         } else if (p < 0.85) {
           // 2. Circular loop phase (15% to 85%) - single clockwise loop
           const ratio = (p - 0.15) / 0.70;
           const theta = theta0 - ratio * 2 * Math.PI * 1;
-          
+
           targetX = cX + R * Math.cos(theta);
           targetY = cY + R * Math.sin(theta);
-          
+
           targetRotZ = -0.25 * Math.cos(theta);
           targetScale = 0.95;
         } else {
@@ -150,10 +175,10 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
           const ratio = (p - 0.85) / 0.15;
           const targetCircleEndX = cX + R * Math.cos(theta0);
           const targetCircleEndY = cY + R * Math.sin(theta0);
-          
+
           targetX = targetCircleEndX + (startX - targetCircleEndX) * ratio;
           targetY = targetCircleEndY + (startY - targetCircleEndY) * ratio;
-          
+
           if (ratio < 0.5) {
             const r = ratio / 0.5;
             targetY = targetY + 6 * r;
@@ -168,16 +193,19 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
       }
 
       // Calculate organic bobbing and breathing scales
-      const bobbing = Math.sin(elapsedTime * 2.5) * 4; // Pixels bobbing
+      const bobbing = Math.sin(elapsedTime * 2.5) * (mobile ? 2.5 : 4); // Pixels bobbing
       const breathing = targetScale * (1.0 + Math.sin(elapsedTime * 1.5) * 0.015);
 
       // Fast wiggling/bobbing excitement when waving
-      const currentBobbing = isWavingRef.current ? Math.sin(elapsedTime * 12) * 6 : bobbing;
+      const currentBobbing = isWavingRef.current ? Math.sin(elapsedTime * 12) * (mobile ? 4 : 6) : bobbing;
       const finalY = isFlyingRef.current ? targetY : targetY + currentBobbing;
 
       // Apply spatial transforms to main robot Ref
       if (robotRef.current) {
-        robotRef.current.style.transform = `translate3d(${targetX - 60}px, ${finalY - 60}px, 0px) scale(${breathing}) rotate(${targetRotZ}rad)`;
+        robotRef.current.style.transform = `translate3d(${targetX - halfRobot}px, ${finalY - halfRobot}px, 0px) scale(${breathing}) rotate(${targetRotZ}rad)`;
+        // Keep robot size in sync with screen size
+        robotRef.current.style.width = `${robotSize}px`;
+        robotRef.current.style.height = `${robotSize}px`;
       }
 
       // Flame flicker animation logic
@@ -204,7 +232,6 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
       // Organic Arm levitation and waving logic
       if (leftArmRef.current) {
         if (isWavingRef.current) {
-          // Cheerful wave mirroring the right arm in excitement
           const waveAngle = 45 - Math.sin(elapsedTime * 18) * 25;
           leftArmRef.current.style.transform = `rotate(${waveAngle}deg)`;
         } else {
@@ -215,11 +242,9 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
 
       if (rightArmRef.current) {
         if (isWavingRef.current) {
-          // High-frequency robotic pincer claw wave gesture
           const waveAngle = -45 + Math.sin(elapsedTime * 18) * 25;
           rightArmRef.current.style.transform = `rotate(${waveAngle}deg)`;
         } else {
-          // Standard breathing sway
           const rightArmAngle = Math.sin(elapsedTime * 2.5) * 5;
           rightArmRef.current.style.transform = `rotate(${rightArmAngle}deg)`;
         }
@@ -239,6 +264,11 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
     };
   }, []);
 
+  // Click target size: smaller on mobile
+  const clickW = isMobile ? "w-10 h-14" : "w-14 h-20";
+  const clickBottom = isMobile ? "bottom-3 right-3" : "bottom-4 right-5";
+  const bubbleBottom = isMobile ? "bottom-[100px] right-[12px]" : "bottom-[140px] right-[24px]";
+
   return (
     <>
       {/* Hardware-accelerated Native SVG Container rendering the exact 3D-effect orange toy robot design */}
@@ -246,8 +276,8 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
         ref={robotRef}
         className="fixed pointer-events-none z-[9999]"
         style={{
-          width: "120px",
-          height: "120px",
+          width: isMobile ? "80px" : "120px",
+          height: isMobile ? "80px" : "120px",
           left: 0,
           top: 0,
           transform: "translate3d(0px, 0px, 0px)",
@@ -267,7 +297,7 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
               <stop offset="0%" stopColor="#fff4d0" stopOpacity="0.6" />
               <stop offset="100%" stopColor="#FFAE42" stopOpacity="0" />
             </linearGradient>
-            
+
             <linearGradient id="visorGrad" x1="64" y1="30" x2="136" y2="78" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#0b1329" />
               <stop offset="100%" stopColor="#020617" />
@@ -333,33 +363,23 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
 
           {/* Main Robot bobbing group */}
           <g ref={bodyRef} style={{ transformOrigin: "100px 100px", transition: "transform 0.1s ease" }}>
-            
+
             {/* Left Articulated Robotic Arm */}
             <g ref={leftArmRef} style={{ transformOrigin: "64px 108px", transition: "transform 0.1s ease" }}>
-              {/* Upper Silver Joint */}
               <rect x="58" y="104" width="12" height="8" rx="2" fill="url(#silverGrad)" stroke="#475569" strokeWidth="0.5" transform="rotate(-25, 64, 108)" />
-              {/* Forearm Silver joint */}
               <rect x="44" y="110" width="16" height="8" rx="2" fill="url(#silverGrad)" stroke="#475569" strokeWidth="0.5" transform="rotate(-35, 52, 114)" />
-              {/* Elbow Cuff Ring (Black) */}
               <circle cx="38" cy="120" r="8" fill="url(#blackGrad)" stroke="#0f172a" strokeWidth="0.5" />
-              {/* Wrist ball (Yellow) */}
               <circle cx="38" cy="120" r="4" fill="url(#yellowGrad)" />
-              {/* Pincer Claw Jaws (Silver) */}
               <path d="M 28,114 Q 22,118 24,126 Q 28,130 32,124" fill="none" stroke="url(#silverGrad)" strokeWidth="2.5" strokeLinecap="round" />
               <path d="M 38,126 Q 38,132 32,134 Q 28,132 32,124" fill="none" stroke="url(#silverGrad)" strokeWidth="2.5" strokeLinecap="round" />
             </g>
 
             {/* Right Articulated Robotic Arm */}
             <g ref={rightArmRef} style={{ transformOrigin: "136px 108px", transition: "transform 0.1s ease" }}>
-              {/* Upper Silver Joint */}
               <rect x="130" y="104" width="12" height="8" rx="2" fill="url(#silverGrad)" stroke="#475569" strokeWidth="0.5" transform="rotate(25, 136, 108)" />
-              {/* Forearm Silver joint */}
               <rect x="140" y="110" width="16" height="8" rx="2" fill="url(#silverGrad)" stroke="#475569" strokeWidth="0.5" transform="rotate(35, 148, 114)" />
-              {/* Elbow Cuff Ring (Black) */}
               <circle cx="162" cy="120" r="8" fill="url(#blackGrad)" stroke="#0f172a" strokeWidth="0.5" />
-              {/* Wrist ball (Yellow) */}
               <circle cx="162" cy="120" r="4" fill="url(#yellowGrad)" />
-              {/* Pincer Claw Jaws (Silver) */}
               <path d="M 172,114 Q 178,118 176,126 Q 172,130 168,124" fill="none" stroke="url(#silverGrad)" strokeWidth="2.5" strokeLinecap="round" />
               <path d="M 162,126 Q 162,132 168,134 Q 172,132 168,124" fill="none" stroke="url(#silverGrad)" strokeWidth="2.5" strokeLinecap="round" />
             </g>
@@ -369,16 +389,13 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
 
             {/* Fire Boost Thruster Flame */}
             <g ref={fireBoostRef} style={{ transformOrigin: "100px 136px", opacity: 0, transition: "opacity 0.2s ease", willChange: "transform, opacity" }}>
-              {/* Outer flame */}
               <path d="M 82,136 Q 100,185 118,136" fill="url(#fireOuterGrad)" />
-              {/* Inner hot flame */}
               <path d="M 90,136 Q 100,165 110,136" fill="url(#fireInnerGrad)" />
             </g>
 
             {/* Torso Body (Orange) */}
             <g>
               <rect x="73" y="88" width="54" height="48" rx="16" fill="url(#orangeGrad)" stroke="#b86900" strokeWidth="1.2" />
-              {/* 3D highlight gloss reflection */}
               <path d="M 77,95 C 77,95 86,91 100,91" stroke="url(#orangeHighlight)" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" fill="none" />
             </g>
 
@@ -396,7 +413,6 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
             {/* Rounded capsule head (Orange) */}
             <g>
               <rect x="50" y="18" width="100" height="68" rx="24" fill="url(#orangeGrad)" stroke="#b86900" strokeWidth="1.2" />
-              {/* 3D Head highlight reflection */}
               <path d="M 55,30 C 55,22 75,21 100,21" stroke="url(#orangeHighlight)" strokeWidth="3" strokeLinecap="round" opacity="0.5" fill="none" />
 
               {/* Visor Screen (Black) */}
@@ -409,7 +425,7 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
                   {/* Left Happy Eye */}
                   <path d="M 73,56 Q 82,42 91,56" fill="none" stroke="#38bdf8" strokeWidth="4" strokeLinecap="round" filter="url(#eyeGlow)" />
                   <path d="M 73,56 Q 82,42 91,56" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
-                  
+
                   {/* Right Happy Eye */}
                   <path d="M 109,56 Q 118,42 127,56" fill="none" stroke="#38bdf8" strokeWidth="4" strokeLinecap="round" filter="url(#eyeGlow)" />
                   <path d="M 109,56 Q 118,42 127,56" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
@@ -434,30 +450,30 @@ export default function AIAssistantRobot({ userName = "Arjun" }: AIAssistantRobo
 
       {/* Speech Bubble box shown ONLY during onboarding first waving */}
       {showSpeechBubble && (
-        <div 
-          className="fixed bottom-[140px] right-[24px] z-[10001] bg-slate-900/85 backdrop-blur-md border border-white/10 rounded-2xl p-3.5 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300 select-none max-w-xs"
-          style={{ 
+        <div
+          className={`fixed z-[10001] bg-slate-900/85 backdrop-blur-md border border-white/10 rounded-2xl p-3 flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300 select-none ${isMobile ? "max-w-[200px]" : "max-w-xs"} ${bubbleBottom}`}
+          style={{
             boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3)",
             transformOrigin: "bottom right"
           }}
         >
-          <div className="w-8 h-8 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-lg shrink-0 shadow-inner">
+          <div className="w-7 h-7 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-base shrink-0 shadow-inner">
             🤖
           </div>
           <div>
-            <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest leading-none mb-1">AI Assistant</p>
-            <p className="text-sm font-extrabold text-white leading-tight">Welcome back, {userName}! 🥳✨</p>
+            <p className="text-[9px] font-bold text-amber-400 uppercase tracking-widest leading-none mb-0.5">AI Assistant</p>
+            <p className={`font-extrabold text-white leading-tight ${isMobile ? "text-xs" : "text-sm"}`}>Welcome back, {userName}! 🥳✨</p>
           </div>
           {/* Tail pointing down to the robot */}
-          <div className="absolute bottom-[-6px] right-[48px] w-3 h-3 bg-slate-900/85 border-r border-b border-white/10 rotate-45" />
+          <div className="absolute bottom-[-6px] right-[40px] w-3 h-3 bg-slate-900/85 border-r border-b border-white/10 rotate-45" />
         </div>
       )}
 
       {/* Floating click target (rendered directly over resting 3D robot location) */}
       {!isFlying && (
-        <div 
+        <div
           onClick={handleRobotClick}
-          className="fixed bottom-4 right-5 w-14 h-20 pointer-events-auto cursor-pointer z-[10000] rounded-full"
+          className={`fixed pointer-events-auto cursor-pointer z-[10000] rounded-full ${clickW} ${clickBottom}`}
           title={isWaving ? "Waving to greet you!" : "Need help? Click me for Doubt Assistance!"}
         />
       )}
