@@ -20,14 +20,14 @@ export default function TrainerStudentsPage() {
       ]);
 
       if (!studentsRes.error && studentsRes.data) {
-        setStudents(studentsRes.data.map(s => {
+        setStudents(studentsRes.data.map((s: any) => {
           // Dynamically compute the score based on actual test submissions
-          let computedScore = "N/A";
+          let computedScore: any = "N/A";
           if (resultsRes.data) {
-            const studentResults = resultsRes.data.filter(r => r.student_name === s.name);
+            const studentResults = resultsRes.data.filter((r: any) => r.student_name === s.name);
             if (studentResults.length > 0) {
-              const totalScore = studentResults.reduce((acc, curr) => acc + curr.score, 0);
-              const totalQuestions = studentResults.reduce((acc, curr) => acc + curr.total_questions, 0);
+              const totalScore = studentResults.reduce((acc: number, curr: any) => acc + curr.score, 0);
+              const totalQuestions = studentResults.reduce((acc: number, curr: any) => acc + curr.total_questions, 0);
               if (totalQuestions > 0) {
                 computedScore = Math.round((totalScore / totalQuestions) * 100) + "%";
               }

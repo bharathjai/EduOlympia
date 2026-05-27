@@ -29,7 +29,7 @@ export default function TrainerManagement() {
   const fetchTrainers = async () => {
     const { data, error } = await supabase.from('users').select('*').eq('role', 'trainer').order('created_at', { ascending: false });
     if (data) {
-      const formatted = data.map((t, i) => ({
+      const formatted = data.map((t: any, i: number) => ({
         id: t.id,
         code: `TR-${String(t.id).padStart(4, '0')}`,
         name: t.name,

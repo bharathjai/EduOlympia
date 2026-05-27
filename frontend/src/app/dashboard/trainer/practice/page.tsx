@@ -15,7 +15,7 @@ export default function TrainerPracticePage() {
   const fetchPapers = async () => {
     const { data, error } = await supabase.from('practice_papers').select('*').order('id', { ascending: false });
     if (!error && data) {
-      setPapers(data.map(p => ({
+      setPapers(data.map((p: any) => ({
         id: p.id,
         title: p.title,
         subject: p.subject,
